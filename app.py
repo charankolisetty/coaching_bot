@@ -7,7 +7,7 @@ from flask_sqlalchemy import SQLAlchemy
 from config import Config
 from openai import OpenAI, OpenAIError
 from werkzeug.middleware.proxy_fix import ProxyFix
-
+from datetime import datetime
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -19,6 +19,10 @@ db = SQLAlchemy(app)
 
 # Initialize OpenAI client
 openai_client = OpenAI(api_key=app.config['OPENAI_API_KEY'])
+
+@app.context_processor
+def inject_year():
+    return {'year': datetime.now().year}
 
 # Models
 class UserThread(db.Model):
