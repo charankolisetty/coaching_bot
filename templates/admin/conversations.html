@@ -8,10 +8,10 @@
 
     {% for thread_id, data in conversations.items() %}
     <div class="bg-white rounded-lg shadow-md mb-8 overflow-hidden" id="thread-{{ thread_id }}">
-        <!-- Thread Info -->
+        <!-- Thread Info Header -->
         <div class="bg-gray-800 text-white p-4">
             <div class="flex justify-between items-center">
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 flex-grow">
                     <div>
                         <span class="text-gray-400 text-sm">User:</span>
                         <p class="font-semibold">{{ data.user }}</p>
@@ -30,38 +30,72 @@
                     </div>
                 </div>
                 <button onclick="deleteConversation('{{ thread_id }}')" 
-                        class="text-red-400 hover:text-red-200 p-2 rounded-full hover:bg-red-900 transition-colors">
+                        class="text-red-400 hover:text-red-200 p-2 rounded-full hover:bg-red-900 transition-colors ml-4">
                     <i class="fas fa-trash-alt"></i>
                 </button>
             </div>
         </div>
 
-        <!-- Messages -->
-        <div class="p-4 space-y-4">
+        <!-- Messages - Chronological Order -->
+        <div class="p-6 space-y-6">
             {% for message in data.messages %}
-            <div class="border-b pb-4">
-                <div class="mb-2">
-                    <p class="text-sm text-gray-500">{{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</p>
-                </div>
-                <div class="ml-4">
-                    <div class="mb-2">
-                        <span class="font-semibold text-blue-600">User:</span>
-                        <p class="ml-4 text-gray-800">{{ message.prompt }}</p>
+            <!-- Timestamp -->
+            <div class="text-center mb-2">
+                <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                    {{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+                </span>
+            </div>
+
+            <!-- User Message -->
+            <div class="flex flex-col space-y-1">
+                <div class="flex items-start space-x-2">
+                    <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                        <i class="fas fa-user text-blue-600"></i>
                     </div>
-                    <div>
-                        <span class="font-semibold text-green-600">Coach:</span>
-                        <p class="ml-4 text-gray-800">{{ message.response }}</p>
+                    <div class="flex-grow">
+                        <div class="bg-blue-50 rounded-lg p-4 relative message-bubble">
+                            <span class="font-semibold text-blue-600 text-sm mb-1 block">User</span>
+                            <p class="text-gray-800">{{ message.prompt }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coach Message -->
+            <div class="flex flex-col space-y-1 ml-4">
+                <div class="flex items-start space-x-2">
+                    <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                        <i class="fas fa-robot text-green-600"></i>
+                    </div>
+                    <div class="flex-grow">
+                        <div class="bg-green-50 rounded-lg p-4 relative message-bubble">
+                            <span class="font-semibold text-green-600 text-sm mb-1 block">Coach</span>
+                            <p class="text-gray-800">{{ message.response }}</p>
+                        </div>
                     </div>
                 </div>
             </div>
             {% endfor %}
+        </div>
+
+        <!-- Thread Footer -->
+        <div class="bg-gray-50 p-4 border-t">
+            <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-600">
+                    Total Messages: {{ data.messages|length }}
+                </span>
+                <button onclick="exportThread('{{ thread_id }}')" 
+                        class="text-sm bg-blue-600 text-white px-3 py-1 rounded-full hover:bg-blue-700">
+                    <i class="fas fa-download mr-1"></i>Export Thread
+                </button>
+            </div>
         </div>
     </div>
     {% endfor %}
 </div>
 
 <!-- Delete Confirmation Modal -->
-<div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center">
+<div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
     <div class="bg-white rounded-lg p-6 max-w-sm mx-4">
         <h3 class="text-lg font-bold mb-4">Delete Conversation?</h3>
         <p class="text-gray-600 mb-6">Are you sure you want to delete this conversation? This action cannot be undone.</p>
@@ -93,6 +127,40 @@ function closeDeleteModal() {
     currentThreadId = null;
 }
 
+function exportThread(threadId) {
+    const thread = document.getElementById(`thread-${threadId}`);
+    let exportText = '';
+    
+    // Get thread info
+    const user = thread.querySelector('[class*="text-gray-400"]:nth-child(1) + p').textContent;
+    const industry = thread.querySelector('[class*="text-gray-400"]:nth-child(2) + p').textContent;
+    const company = thread.querySelector('[class*="text-gray-400"]:nth-child(3) + p').textContent;
+    
+    exportText += `=== Conversation with ${user} (${company} - ${industry}) ===\n\n`;
+    
+    // Get all messages
+    const timestamps = thread.querySelectorAll('.text-xs.text-gray-500');
+    const userMessages = thread.querySelectorAll('.bg-blue-50 p');
+    const coachMessages = thread.querySelectorAll('.bg-green-50 p');
+    
+    for(let i = 0; i < userMessages.length; i++) {
+        exportText += `[${timestamps[i].textContent.trim()}]\n`;
+        exportText += `User: ${userMessages[i].textContent}\n`;
+        exportText += `Coach: ${coachMessages[i].textContent}\n\n`;
+    }
+    
+    // Create and trigger download
+    const blob = new Blob([exportText], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `conversation-${threadId}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+
 document.getElementById('confirmDelete').addEventListener('click', function() {
     if (!currentThreadId) return;
     
@@ -105,26 +173,67 @@ document.getElementById('confirmDelete').addEventListener('click', function() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Remove the conversation from DOM
             document.getElementById(`thread-${currentThreadId}`).remove();
-            // Show success message
-            const event = new CustomEvent('show-toast', { 
-                detail: { message: 'Conversation deleted successfully', type: 'success' }
-            });
-            window.dispatchEvent(event);
+            showToast('Conversation deleted successfully', 'success');
         } else {
             throw new Error(data.error || 'Failed to delete conversation');
         }
     })
     .catch(error => {
-        const event = new CustomEvent('show-toast', { 
-            detail: { message: error.message, type: 'error' }
-        });
-        window.dispatchEvent(event);
+        showToast(error.message, 'error');
     })
     .finally(() => {
         closeDeleteModal();
     });
 });
+
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg text-white ${
+        type === 'success' ? 'bg-green-600' : 'bg-red-600'
+    } animate-fade-in z-50`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
 </script>
+
+<style>
+.message-bubble::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    width: 0;
+    height: 0;
+    border: 8px solid transparent;
+}
+
+.bg-blue-50.message-bubble::before {
+    right: 100%;
+    border-right-color: #eff6ff;
+}
+
+.bg-green-50.message-bubble::before {
+    right: 100%;
+    border-right-color: #f0fdf4;
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
 {% endblock %}
