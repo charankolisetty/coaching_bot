@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - All Conversations{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <h1 class="text-3xl font-bold mb-8">All Conversations</h1>
+
+    {% for thread_id, data in conversations.items() %}
+    <div class="bg-white rounded-lg shadow-md mb-8 overflow-hidden">
+        <!-- Thread Info -->
+        <div class="bg-gray-800 text-white p-4">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                    <span class="text-gray-400 text-sm">User:</span>
+                    <p class="font-semibold">{{ data.user }}</p>
+                </div>
+                <div>
+                    <span class="text-gray-400 text-sm">Industry:</span>
+                    <p class="font-semibold">{{ data.industry }}</p>
+                </div>
+                <div>
+                    <span class="text-gray-400 text-sm">Company:</span>
+                    <p class="font-semibold">{{ data.company }}</p>
+                </div>
+                <div>
+                    <span class="text-gray-400 text-sm">Started:</span>
+                    <p class="font-semibold">{{ data.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages -->
+        <div class="p-4 space-y-4">
+            {% for message in data.messages %}
+            <div class="border-b pb-4">
+                <div class="mb-2">
+                    <p class="text-sm text-gray-500">{{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                </div>
+                <div class="ml-4">
+                    <div class="mb-2">
+                        <span class="font-semibold text-blue-600">User:</span>
+                        <p class="ml-4 text-gray-800">{{ message.prompt }}</p>
+                    </div>
+                    <div>
+                        <span class="font-semibold text-green-600">Coach:</span>
+                        <p class="ml-4 text-gray-800">{{ message.response }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Thread Stats -->
+        <div class="bg-gray-50 p-4 border-t">
+            <p class="text-sm text-gray-600">
+                Total Messages: {{ data.messages|length }}
+            </p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Export Button -->
+<div class="fixed bottom-4 right-4">
+    <button onclick="exportConversations()" 
+            class="bg-blue-600 text-white px-4 py-2 rounded-full shadow-lg hover:bg-blue-700">
+        <i class="fas fa-download mr-2"></i>Export All
+    </button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Define data with explicit script type
+</script>
+<script type="application/json" id="conversation-data">
+    {{ conversations|tojson|safe }}
+</script>
+<script>
+// Load data from the JSON script tag
+const conversationData = JSON.parse(document.getElementById('conversation-data').textContent);
+
+function exportConversations() {
+    let exportText = '';
+    
+    for (const [threadId, data] of Object.entries(conversationData)) {
+        exportText += `\n=== Conversation with ${data.user} (${data.company} - ${data.industry}) ===\n`;
+        exportText += `Started: ${new Date(data.created_at).toLocaleString()}\n\n`;
+        
+        data.messages.forEach(msg => {
+            exportText += `User: ${msg.prompt}\n`;
+            exportText += `Coach: ${msg.response}\n\n`;
+        });
+        exportText += '====================\n\n';
+    }
+    
+    const blob = new Blob([exportText], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'conversations.txt';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+</script>
+{% endblock %}

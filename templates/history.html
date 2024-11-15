@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Conversation History{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <h2 class="text-2xl font-bold mb-6">Your Conversations</h2>
+
+    {% if not conversations %}
+        <div class="bg-gray-50 rounded-lg p-8 text-center">
+            <p class="text-gray-600">No conversations found.</p>
+            <a href="{{ url_for('index') }}" class="mt-4 inline-block bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700">
+                Start a New Conversation
+            </a>
+        </div>
+    {% endif %}
+
+    {% for thread_id, thread_data in conversations.items() %}
+        <div class="bg-white rounded-lg shadow-md mb-6 overflow-hidden">
+            <!-- Thread Header -->
+            <div class="bg-gray-50 p-4 border-b">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h3 class="font-semibold">{{ thread_data.company }}</h3>
+                        <p class="text-sm text-gray-600">Industry: {{ thread_data.industry }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm text-gray-600">
+                            Started: {{ thread_data.created_at.strftime('%Y-%m-%d %H:%M') }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div class="p-4 space-y-4">
+                {% for message in thread_data.messages %}
+                    <!-- User Message -->
+                    <div class="flex flex-col space-y-2">
+                        <div class="flex items-start space-x-2">
+                            <div class="bg-blue-100 rounded-lg p-3 max-w-[80%]">
+                                <p class="text-sm font-medium text-gray-900">You</p>
+                                <p class="text-gray-800">{{ message.prompt }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Bot Response -->
+                        <div class="flex items-start space-x-2 justify-end">
+                            <div class="bg-gray-100 rounded-lg p-3 max-w-[80%]">
+                                <p class="text-sm font-medium text-gray-900">Coach Bot</p>
+                                <p class="text-gray-800">{{ message.response }}</p>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- Thread Footer -->
+            <div class="bg-gray-50 p-4 border-t">
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-600">
+                        {{ thread_data.messages|length }} messages
+                    </span>
+                    <a href="{{ url_for('chat') }}" 
+                       class="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700 text-sm">
+                        Continue Chat
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

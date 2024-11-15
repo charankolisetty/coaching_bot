@@ -24,7 +24,7 @@
             <div class="flex justify-between items-center">
                 <div class="flex items-center space-x-2">
                     <i class="fas fa-robot text-2xl"></i>
-                    <h1 class="text-2xl font-bold">Coach Bot</h1>
+                    <a href="{{ url_for('index') }}" class="text-2xl font-bold hover:text-blue-100">Coach Bot</a>
                 </div>
                 
                 <!-- Session info - will show username if logged in -->
@@ -33,6 +33,14 @@
                     <span class="text-sm">
                         <i class="fas fa-user mr-2"></i>{{ session.get('username') }}
                     </span>
+                    <a href="{{ url_for('chat') }}" 
+                       class="text-sm bg-white text-blue-600 px-3 py-1 rounded-full hover:bg-blue-50 transition-colors">
+                        <i class="fas fa-comments mr-1"></i>Chat
+                    </a>
+                    <a href="{{ url_for('history') }}" 
+                       class="text-sm bg-white text-blue-600 px-3 py-1 rounded-full hover:bg-blue-50 transition-colors">
+                        <i class="fas fa-history mr-1"></i>History
+                    </a>
                     <a href="{{ url_for('index') }}" 
                        class="text-sm bg-white text-blue-600 px-3 py-1 rounded-full hover:bg-blue-50 transition-colors">
                         <i class="fas fa-sign-out-alt mr-1"></i>Exit
@@ -48,7 +56,7 @@
         {% if messages %}
             <div class="container mx-auto px-4 mt-4">
                 {% for category, message in messages %}
-                    <div class="rounded-lg p-4 mb-4 text-sm 
+                    <div class="rounded-lg p-4 mb-4 text-sm flash-message
                               {% if category == 'error' %}
                                   bg-red-100 text-red-700
                               {% else %}
@@ -105,6 +113,19 @@
                 submitButton.html(originalText);
                 submitButton.prop('disabled', false);
             }, 30000);
+        });
+
+        // Active link highlighting
+        $(document).ready(function() {
+            // Get current path
+            var path = window.location.pathname;
+            
+            // Add active class to current nav link
+            $('nav a').each(function() {
+                if ($(this).attr('href') === path) {
+                    $(this).addClass('bg-blue-50 text-blue-700');
+                }
+            });
         });
     </script>
 </body>

@@ -2,15 +2,33 @@ import os
 import time
 import logging
 from datetime import datetime
-from flask import Flask, render_template, request, session, redirect, url_for, jsonify, flash
+from flask import Flask, render_template, request, session, redirect, url_for, jsonify, flash, Response
 from flask_sqlalchemy import SQLAlchemy
 from config import Config
 from openai import OpenAI, OpenAIError
 from werkzeug.middleware.proxy_fix import ProxyFix
 from datetime import datetime
+import functools
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Admin credentials (store these securely in production)
+ADMIN_USERNAME = "admin"
+ADMIN_PASSWORD = "Charan@2024"  # Use environment variable in production
+
+def admin_required(f):
+    @functools.wraps(f)
+    def decorated_function(*args, **kwargs):
+        auth = request.authorization
+        if not auth or auth.username != ADMIN_USERNAME or auth.password != ADMIN_PASSWORD:
+            return Response(
+                'Could not verify your access level for that URL.\n'
+                'You have to login with proper credentials', 401,
+                {'WWW-Authenticate': 'Basic realm="Login Required"'}
+            )
+        return f(*args, **kwargs)
+    return decorated_function
 
 app = Flask(__name__, static_folder='static')
 app.config.from_object(Config)
@@ -109,7 +127,10 @@ def chat():
     if request.method == "POST":
         prompt = request.form.get("prompt")
         thread_id = session.get("thread_id")
-
+        username = session.get("username")
+        industry = session.get("industry")
+        company = session.get("company")
+        
         if not prompt or not thread_id:
             return jsonify({"error": "Prompt and Thread ID are required"}), 400
 
@@ -124,7 +145,8 @@ def chat():
             # Run the assistant
             run = openai_client.beta.threads.runs.create(
                 thread_id=thread_id,
-                assistant_id=app.config["ASSISTANT_ID"]
+                assistant_id=app.config["ASSISTANT_ID"],
+                instructions=f"The user '{username}' is from the '{industry}' industry and works at '{company}'. Maintain your tone, slang, and way of talking relating to their industry and company context. Remember this context for the entire conversation."
             )
 
             max_attempts = 30  # Maximum 30 seconds wait
@@ -181,6 +203,73 @@ def chat():
         logger.error(f"Error retrieving chat history: {str(e)}")
         flash("Error loading chat history", "error")
         return render_template("chat.html", chat_history=[])
+
+@app.route("/history")
+@login_required
+def chat_history():
+    try:
+        username = session.get('username')
+        # Get user's threads
+        user_threads = UserThread.query.filter_by(username=username).order_by(UserThread.created_at.desc()).all()
+        
+        # Get conversations for each thread
+        conversations = {}
+        for thread in user_threads:
+            chats = ChatHistory.query.filter_by(
+                thread_id=thread.thread_id
+            ).order_by(ChatHistory.timestamp).all()
+            
+            conversations[thread.thread_id] = {
+                'industry': thread.industry,
+                'company': thread.company,
+                'created_at': thread.created_at,
+                'messages': chats
+            }
+        
+        return render_template(
+            'history.html',
+            conversations=conversations
+        )
+    except Exception as e:
+        logger.error(f"Error retrieving chat history: {str(e)}")
+        flash("Error loading chat history", "error")
+        return redirect(url_for('index'))
+
+@app.route("/admin/conversations")
+@admin_required
+def admin_conversations():
+    try:
+        # Get all conversations ordered by timestamp
+        all_chats = db.session.query(
+            ChatHistory, UserThread
+        ).join(
+            UserThread, ChatHistory.thread_id == UserThread.thread_id
+        ).order_by(
+            ChatHistory.timestamp.desc()
+        ).all()
+
+        # Group conversations by thread
+        conversations = {}
+        for chat, thread in all_chats:
+            if thread.thread_id not in conversations:
+                conversations[thread.thread_id] = {
+                    'user': thread.username,
+                    'industry': thread.industry,
+                    'company': thread.company,
+                    'created_at': thread.created_at,
+                    'messages': []
+                }
+            conversations[thread.thread_id]['messages'].append({
+                'prompt': chat.prompt,
+                'response': chat.response,
+                'timestamp': chat.timestamp
+            })
+
+        return render_template('admin/conversations.html', conversations=conversations)
+    except Exception as e:
+        logger.error(f"Error in admin conversations: {str(e)}")
+        return "Error loading conversations", 500
+
 
 @app.route("/logout")
 def logout():
