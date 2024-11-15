@@ -21,6 +21,7 @@
 
 <body class="bg-gray-50 min-h-screen flex flex-col">
     <!-- Navigation -->
+    <!-- Navigation section in base.html -->
     <nav class="bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg">
         <div class="container mx-auto px-4 py-3">
             <div class="flex justify-between items-center">
@@ -30,7 +31,6 @@
                 </div>
 
                 <!-- Session info - will show username if logged in -->
-                <!-- In base.html, change the history link -->
                 {% if session.get('username') %}
                 <div class="flex items-center space-x-4">
                     <span class="text-sm">
@@ -40,9 +40,8 @@
                         class="text-sm bg-white text-blue-600 px-3 py-1 rounded-full hover:bg-blue-50 transition-colors">
                         <i class="fas fa-comments mr-1"></i>Chat
                     </a>
-                    <a href="{{ url_for('chat_history') }}" <!-- Changed from 'history' to 'chat_history' -->
-                        class="text-sm bg-white text-blue-600 px-3 py-1 rounded-full hover:bg-blue-50
-                        transition-colors">
+                    <a href="{{ url_for('chat_history') }}"
+                        class="text-sm bg-white text-blue-600 px-3 py-1 rounded-full hover:bg-blue-50 transition-colors">
                         <i class="fas fa-history mr-1"></i>History
                     </a>
                     <a href="{{ url_for('logout') }}"
@@ -54,7 +53,6 @@
             </div>
         </div>
     </nav>
-
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}

@@ -9,16 +9,42 @@
     </div>
 
     <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4">
-        <!-- Messages will be added here dynamically -->
+        <!-- Initial welcome message -->
+        <div class="flex items-start space-x-2">
+            <div class="bg-gray-100 rounded-lg p-3 max-w-[80%]">
+                <p class="text-gray-800">Hi! I'm your coach bot. How can I help you today?</p>
+            </div>
+        </div>
+
+        <!-- Existing chat history -->
+        {% for message in chat_history %}
+        <div class="flex flex-col space-y-2">
+            <!-- User message -->
+            <div class="flex justify-end">
+                <div class="bg-blue-100 rounded-lg p-3 max-w-[80%]">
+                    <p class="text-gray-800">{{ message.prompt }}</p>
+                </div>
+            </div>
+            <!-- Bot response -->
+            <div class="flex items-start space-x-2">
+                <div class="bg-gray-100 rounded-lg p-3 max-w-[80%]">
+                    <p class="text-gray-800">{{ message.response }}</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
     </div>
 
     <div class="border-t p-4">
         <form id="chat-form" class="flex space-x-4">
-            <input type="text" id="prompt" name="prompt" required
-                class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                placeholder="Type your message...">
+            <input type="text" 
+                   id="prompt" 
+                   name="prompt" 
+                   required
+                   class="flex-1 rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                   placeholder="Type your message...">
             <button type="submit"
-                class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
                 Send
             </button>
         </form>
@@ -27,5 +53,85 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+<script>
+$(document).ready(function() {
+    const chatMessages = $('#chat-messages');
+    const chatForm = $('#chat-form');
+    const promptInput = $('#prompt');
+
+    // Scroll to bottom initially
+    scrollToBottom();
+
+    chatForm.on('submit', function(e) {
+        e.preventDefault();
+        
+        const prompt = promptInput.val().trim();
+        if (!prompt) return;
+
+        // Disable form and show user message
+        chatForm.addClass('disabled');
+        addMessage(prompt, 'user');
+        promptInput.val('');
+
+        // Show typing indicator
+        showTypingIndicator();
+
+        // Send request to server
+        $.ajax({
+            url: '/chat',
+            method: 'POST',
+            data: { prompt: prompt },
+            success: function(response) {
+                // Remove typing indicator and add bot response
+                removeTypingIndicator();
+                addMessage(response.response, 'bot');
+            },
+            error: function(xhr, status, error) {
+                // Remove typing indicator and show error
+                removeTypingIndicator();
+                const errorMessage = xhr.responseJSON?.error || 'An error occurred. Please try again.';
+                addMessage(`Error: ${errorMessage}`, 'error');
+            },
+            complete: function() {
+                // Re-enable form
+                chatForm.removeClass('disabled');
+                // Scroll to bottom
+                scrollToBottom();
+            }
+        });
+    });
+
+    function addMessage(text, type) {
+        const messageHTML = type === 'user' 
+            ? `<div class="flex justify-end"><div class="bg-blue-100 rounded-lg p-3 max-w-[80%]"><p class="text-gray-800">${text}</p></div></div>`
+            : `<div class="flex items-start space-x-2"><div class="bg-gray-100 rounded-lg p-3 max-w-[80%]"><p class="text-gray-800">${text}</p></div></div>`;
+        
+        chatMessages.append(messageHTML);
+        scrollToBottom();
+    }
+
+    function showTypingIndicator() {
+        const indicator = `
+            <div class="typing-indicator flex items-start space-x-2">
+                <div class="bg-gray-100 rounded-lg p-3">
+                    <div class="flex items-center space-x-1">
+                        <div class="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
+                        <div class="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                        <div class="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
+                    </div>
+                </div>
+            </div>`;
+        chatMessages.append(indicator);
+        scrollToBottom();
+    }
+
+    function removeTypingIndicator() {
+        $('.typing-indicator').remove();
+    }
+
+    function scrollToBottom() {
+        chatMessages.scrollTop(chatMessages[0].scrollHeight);
+    }
+});
+</script>
 {% endblock %}
