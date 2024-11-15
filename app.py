@@ -271,6 +271,54 @@ def admin_conversations():
         return "Error loading conversations", 500
 
 
+@app.route("/delete_conversation/<thread_id>", methods=["POST"])
+@login_required
+def delete_conversation(thread_id):
+    try:
+        # Check if the thread belongs to the current user
+        thread = UserThread.query.filter_by(
+            thread_id=thread_id,
+            username=session.get('username')
+        ).first()
+        
+        if not thread:
+            return jsonify({"error": "Conversation not found"}), 404
+            
+        # Delete chat history
+        ChatHistory.query.filter_by(thread_id=thread_id).delete()
+        # Delete thread
+        db.session.delete(thread)
+        db.session.commit()
+        
+        flash("Conversation deleted successfully", "success")
+        return jsonify({"success": True})
+    except Exception as e:
+        logger.error(f"Error deleting conversation: {str(e)}")
+        db.session.rollback()
+        return jsonify({"error": "Failed to delete conversation"}), 500
+
+@app.route("/admin/delete_conversation/<thread_id>", methods=["POST"])
+@admin_required
+def admin_delete_conversation(thread_id):
+    try:
+        # Find the thread
+        thread = UserThread.query.filter_by(thread_id=thread_id).first()
+        
+        if not thread:
+            return jsonify({"error": "Conversation not found"}), 404
+            
+        # Delete chat history
+        ChatHistory.query.filter_by(thread_id=thread_id).delete()
+        # Delete thread
+        db.session.delete(thread)
+        db.session.commit()
+        
+        return jsonify({"success": True})
+    except Exception as e:
+        logger.error(f"Error deleting conversation: {str(e)}")
+        db.session.rollback()
+        return jsonify({"error": "Failed to delete conversation"}), 500
+
 @app.route("/logout")
 def logout():
     session.clear()
