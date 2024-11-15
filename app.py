@@ -245,7 +245,8 @@ def admin_conversations():
         ).join(
             UserThread, ChatHistory.thread_id == UserThread.thread_id
         ).order_by(
-            ChatHistory.timestamp.desc()
+            UserThread.created_at.desc(),
+            ChatHistory.timestamp.asc()  # This ensures messages are in chronological order
         ).all()
 
         # Group conversations by thread

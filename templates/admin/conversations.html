@@ -36,47 +36,58 @@
             </div>
         </div>
 
-        <!-- Messages - Chronological Order -->
-        <div class="p-6 space-y-6">
-            {% for message in data.messages %}
-            <!-- Timestamp -->
-            <div class="text-center mb-2">
-                <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                    {{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
-                </span>
-            </div>
+<!-- Messages - Chronological Order (First to Last) -->
+<div class="p-6 space-y-4">
+    <!-- Initial system message -->
+    <div class="text-center mb-4">
+        <div class="inline-block bg-gray-100 rounded-lg px-4 py-2 text-sm text-gray-600">
+            Conversation started on {{ data.created_at.strftime('%Y-%m-%d %H:%M') }}
+        </div>
+    </div>
 
+    {% for message in data.messages|sort(attribute='timestamp') %}  {# Sort messages by timestamp #}
+        <div class="space-y-4">
             <!-- User Message -->
-            <div class="flex flex-col space-y-1">
-                <div class="flex items-start space-x-2">
-                    <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                        <i class="fas fa-user text-blue-600"></i>
-                    </div>
-                    <div class="flex-grow">
-                        <div class="bg-blue-50 rounded-lg p-4 relative message-bubble">
-                            <span class="font-semibold text-blue-600 text-sm mb-1 block">User</span>
-                            <p class="text-gray-800">{{ message.prompt }}</p>
+            <div class="flex items-start space-x-3">
+                <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-user text-blue-600"></i>
+                </div>
+                <div class="flex-grow">
+                    <div class="bg-blue-50 rounded-lg p-3 relative">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="text-xs font-semibold text-blue-600">User</span>
+                            <span class="text-xs text-gray-500">{{ message.timestamp.strftime('%H:%M') }}</span>
                         </div>
+                        <p class="text-gray-800">{{ message.prompt }}</p>
                     </div>
                 </div>
             </div>
 
             <!-- Coach Message -->
-            <div class="flex flex-col space-y-1 ml-4">
-                <div class="flex items-start space-x-2">
-                    <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                        <i class="fas fa-robot text-green-600"></i>
-                    </div>
-                    <div class="flex-grow">
-                        <div class="bg-green-50 rounded-lg p-4 relative message-bubble">
-                            <span class="font-semibold text-green-600 text-sm mb-1 block">Coach</span>
-                            <p class="text-gray-800">{{ message.response }}</p>
+            <div class="flex items-start space-x-3 ml-6">
+                <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-robot text-green-600"></i>
+                </div>
+                <div class="flex-grow">
+                    <div class="bg-green-50 rounded-lg p-3 relative">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="text-xs font-semibold text-green-600">Coach</span>
+                            <span class="text-xs text-gray-500">{{ message.timestamp.strftime('%H:%M') }}</span>
                         </div>
+                        <p class="text-gray-800">{{ message.response }}</p>
                     </div>
                 </div>
             </div>
-            {% endfor %}
         </div>
+    {% endfor %}
+
+    <!-- End of conversation marker -->
+    <div class="text-center mt-4">
+        <div class="inline-block bg-gray-100 rounded-lg px-4 py-2 text-sm text-gray-600">
+            End of conversation ({{ data.messages|length }} messages)
+        </div>
+    </div>
+</div>
 
         <!-- Thread Footer -->
         <div class="bg-gray-50 p-4 border-t">

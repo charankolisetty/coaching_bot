@@ -182,3 +182,52 @@ button:not(:disabled):active {
         width: 5px;
     }
 }
+
+.message-bubble::before {
+    content: '';
+    position: absolute;
+    top: 12px;
+    width: 0;
+    height: 0;
+    border: 6px solid transparent;
+}
+
+.bg-blue-50.relative::before {
+    right: 100%;
+    border-right-color: #eff6ff;
+}
+
+.bg-green-50.relative::before {
+    right: 100%;
+    border-right-color: #f0fdf4;
+}
+
+/* Hover effects */
+.bg-blue-50:hover, .bg-green-50:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+}
+
+/* Message container spacing */
+.space-y-4 > :not([hidden]) ~ :not([hidden]) {
+    --tw-space-y-reverse: 0;
+    margin-top: calc(1rem * calc(1 - var(--tw-space-y-reverse)));
+    margin-bottom: calc(1rem * var(--tw-space-y-reverse));
+}
+
+/* Smooth animations */
+.message-container {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
