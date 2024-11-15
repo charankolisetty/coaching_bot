@@ -204,9 +204,9 @@ def chat():
         flash("Error loading chat history", "error")
         return render_template("chat.html", chat_history=[])
 
-@app.route("/history")
+@app.route("/chat/history")
 @login_required
-def chat_history():
+def chat_history():  
     try:
         username = session.get('username')
         # Get user's threads

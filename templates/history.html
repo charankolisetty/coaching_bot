@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Conversation History{% endblock %}
+{% block title %}Chat History{% endblock %}
 
 {% block content %}
 <div class="max-w-6xl mx-auto">
@@ -9,7 +9,7 @@
     {% if not conversations %}
         <div class="bg-gray-50 rounded-lg p-8 text-center">
             <p class="text-gray-600">No conversations found.</p>
-            <a href="{{ url_for('index') }}" class="mt-4 inline-block bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700">
+            <a href="{{ url_for('chat') }}" class="mt-4 inline-block bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700">
                 Start a New Conversation
             </a>
         </div>
@@ -35,7 +35,6 @@
             <!-- Messages -->
             <div class="p-4 space-y-4">
                 {% for message in thread_data.messages %}
-                    <!-- User Message -->
                     <div class="flex flex-col space-y-2">
                         <div class="flex items-start space-x-2">
                             <div class="bg-blue-100 rounded-lg p-3 max-w-[80%]">
@@ -43,8 +42,6 @@
                                 <p class="text-gray-800">{{ message.prompt }}</p>
                             </div>
                         </div>
-
-                        <!-- Bot Response -->
                         <div class="flex items-start space-x-2 justify-end">
                             <div class="bg-gray-100 rounded-lg p-3 max-w-[80%]">
                                 <p class="text-sm font-medium text-gray-900">Coach Bot</p>
@@ -53,19 +50,6 @@
                         </div>
                     </div>
                 {% endfor %}
-            </div>
-
-            <!-- Thread Footer -->
-            <div class="bg-gray-50 p-4 border-t">
-                <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-600">
-                        {{ thread_data.messages|length }} messages
-                    </span>
-                    <a href="{{ url_for('chat') }}" 
-                       class="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700 text-sm">
-                        Continue Chat
-                    </a>
-                </div>
             </div>
         </div>
     {% endfor %}
