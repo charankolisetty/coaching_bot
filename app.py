@@ -146,7 +146,7 @@ def chat():
             run = openai_client.beta.threads.runs.create(
                 thread_id=thread_id,
                 assistant_id=app.config["ASSISTANT_ID"],
-                instructions=f"The user '{username}' is from the '{industry}' industry and works at '{company}'. Maintain your tone, slang, and way of talking relating to their industry and company context. Remember this context for the entire conversation."
+                instructions=f"Consider the user's background: '{username}' works in the '{industry}' industry at '{company}'. Adapt your tone, terminology, and conversational approach to align with their industry and company context while maintaining professionalism. Use this context to enhance the conversation where relevant, but do not rely solely on it."
             )
 
             max_attempts = 30  # Maximum 30 seconds wait
