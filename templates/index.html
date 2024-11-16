@@ -1,34 +1,62 @@
 {% extends "base.html" %}
-
-{% block title %}Welcome{% endblock %}
-
 {% block content %}
 <div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-md">
     <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">Welcome to Coach Bot</h2>
     
     <form method="POST" class="space-y-4">
         <div>
-            <label for="username" class="block text-sm font-medium text-gray-700">Your Name</label>
-            <input type="text" name="username" id="username" required
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <label class="block text-sm font-medium text-gray-700">Session Type</label>
+            <select id="sessionType" onchange="toggleSessionSelect()" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <option value="new">New Session</option>
+                <option value="continue">Continue Previous Session</option>
+            </select>
         </div>
 
-        <div>
-            <label for="industry" class="block text-sm font-medium text-gray-700">Industry</label>
-            <input type="text" name="industry" id="industry" required
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+        <div id="sessionSelect" class="hidden">
+            <label class="block text-sm font-medium text-gray-700">Select Previous Session</label>
+            <select name="thread_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                {% for thread in previous_threads %}
+                <option value="{{ thread.thread_id }}">
+                    {{ thread.created_at.strftime('%Y-%m-%d %H:%M') }} - {{ thread.company }} ({{ thread.industry }})
+                </option>
+                {% endfor %}
+            </select>
         </div>
 
-        <div>
-            <label for="company" class="block text-sm font-medium text-gray-700">Company</label>
-            <input type="text" name="company" id="company" required
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+        <div id="newSessionFields">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700">Name</label>
+                <input type="text" name="username" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700">Industry</label>
+                <input type="text" name="industry" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Company</label>
+                <input type="text" name="company" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
         </div>
 
-        <button type="submit"
-            class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+        <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
             Start Chatting
         </button>
     </form>
 </div>
+
+<script>
+function toggleSessionSelect() {
+    const sessionType = document.getElementById('sessionType').value;
+    const sessionSelect = document.getElementById('sessionSelect');
+    const newSessionFields = document.getElementById('newSessionFields');
+    
+    if (sessionType === 'continue') {
+        sessionSelect.classList.remove('hidden');
+        newSessionFields.classList.add('hidden');
+    } else {
+        sessionSelect.classList.add('hidden');
+        newSessionFields.classList.remove('hidden');
+    }
+}
+</script>
 {% endblock %}

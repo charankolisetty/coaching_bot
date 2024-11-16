@@ -82,44 +82,57 @@ def login_required(f):
 
 @app.route("/", methods=["GET", "POST"])
 def index():
+    if request.method == "GET":
+        previous_threads = []
+        if session.get('username'):
+            previous_threads = UserThread.query.filter_by(
+                username=session.get('username')
+            ).order_by(UserThread.created_at.desc()).all()
+        return render_template("index.html", previous_threads=previous_threads)
+
     if request.method == "POST":
-        username = request.form.get("username")
-        industry = request.form.get("industry")
-        company = request.form.get("company")
-
-        if not username or not industry or not company:
-            flash("All fields are required", "error")
-            return redirect(url_for("index"))
-
-        try:
-            # Create thread
-            thread = openai_client.beta.threads.create()
+        if 'thread_id' in request.form:
+            # Continue previous session
+            thread = UserThread.query.filter_by(thread_id=request.form['thread_id']).first()
+            if not thread:
+                flash("Session not found", "error")
+                return redirect(url_for("index"))
             
-            # Save thread info
-            user_thread = UserThread(
-                username=username,
-                thread_id=thread.id,
-                industry=industry,
-                company=company
-            )
-            db.session.add(user_thread)
-            db.session.commit()
+            session["username"] = thread.username
+            session["industry"] = thread.industry
+            session["company"] = thread.company
+            session["thread_id"] = thread.thread_id
+        else:
+            # Start new session
+            username = request.form.get("username")
+            industry = request.form.get("industry")
+            company = request.form.get("company")
 
-            # Set session
-            session["username"] = username
-            session["industry"] = industry
-            session["company"] = company
-            session["thread_id"] = thread.id
+            if not all([username, industry, company]):
+                flash("All fields are required", "error")
+                return redirect(url_for("index"))
 
-            flash(f"Welcome {username}!", "success")
-            return redirect(url_for("chat"))
+            try:
+                thread = openai_client.beta.threads.create()
+                user_thread = UserThread(
+                    username=username,
+                    thread_id=thread.id,
+                    industry=industry,
+                    company=company
+                )
+                db.session.add(user_thread)
+                db.session.commit()
 
-        except Exception as e:
-            logger.error(f"Error in index route: {str(e)}")
-            flash("An error occurred. Please try again.", "error")
-            return redirect(url_for("index"))
+                session["username"] = username
+                session["industry"] = industry
+                session["company"] = company
+                session["thread_id"] = thread.id
+            except Exception as e:
+                logger.error(f"Error creating thread: {str(e)}")
+                flash("Error starting session", "error")
+                return redirect(url_for("index"))
 
-    return render_template("index.html")
+        return redirect(url_for("chat"))
 
 @app.route("/chat", methods=["GET", "POST"])
 @login_required
