@@ -92,52 +92,56 @@ def login_required(f):
     decorated_function.__name__ = f.__name__
     return decorated_function
 
+@app.route("/check_sessions", methods=["POST"])
+def check_sessions():
+    username = request.form.get("username")
+    industry = request.form.get("industry")
+    company = request.form.get("company")
+    
+    if not all([username, industry, company]):
+        return jsonify({"error": "All fields are required"}), 400
+        
+    try:
+        # Get previous sessions for this user with same industry and company
+        previous_sessions = UserThread.query.filter_by(
+            username=username,
+            industry=industry,
+            company=company
+        ).order_by(UserThread.created_at.desc()).all()
+        
+        return jsonify({
+            "previous_sessions": [{
+                "thread_id": thread.thread_id,
+                "created_at": thread.created_at.strftime("%Y-%m-%d %H:%M"),
+                "company": thread.company
+            } for thread in previous_sessions]
+        })
+    except Exception as e:
+        logger.error(f"Error checking sessions: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/", methods=["GET", "POST"])
 def index():
-    try:
-        if request.method == "GET":
-            previous_threads = []
-            if session.get('username'):
-                # Get previous threads for logged in user
-                previous_threads = UserThread.query.filter_by(
-                    username=session.get('username')
-                ).order_by(UserThread.created_at.desc()).all()
-                
-            return render_template("index.html", previous_threads=previous_threads)
-        
-        elif request.method == "POST":
-            # Handle continuing previous session
-            if 'thread_id' in request.form:
-                thread = UserThread.query.filter_by(
-                    thread_id=request.form.get('thread_id')
-                ).first()
-                
+    if request.method == "POST":
+        username = request.form.get("username")
+        industry = request.form.get("industry")
+        company = request.form.get("company")
+        thread_id = request.form.get("thread_id")
+
+        if not all([username, industry, company]):
+            flash("All fields are required", "error")
+            return redirect(url_for("index"))
+
+        try:
+            if thread_id:
+                # Continue existing session
+                thread = UserThread.query.filter_by(thread_id=thread_id).first()
                 if not thread:
                     flash("Session not found", "error")
                     return redirect(url_for("index"))
-                
-                # Set session data
-                session["username"] = thread.username
-                session["industry"] = thread.industry
-                session["company"] = thread.company
-                session["thread_id"] = thread.thread_id
-                
-                return redirect(url_for("chat"))
-            
-            # Handle new session creation
-            username = request.form.get("username")
-            industry = request.form.get("industry")
-            company = request.form.get("company")
-
-            if not all([username, industry, company]):
-                flash("All fields are required", "error")
-                return redirect(url_for("index"))
-
-            try:
-                # Create new OpenAI thread
+            else:
+                # Create new session
                 thread = openai_client.beta.threads.create()
-                
-                # Create new user thread in database
                 user_thread = UserThread(
                     username=username,
                     thread_id=thread.id,
@@ -146,28 +150,22 @@ def index():
                 )
                 db.session.add(user_thread)
                 db.session.commit()
+                thread_id = thread.id
 
-                # Set session data
-                session["username"] = username
-                session["industry"] = industry
-                session["company"] = company
-                session["thread_id"] = thread.id
+            # Set session data
+            session["username"] = username
+            session["industry"] = industry
+            session["company"] = company
+            session["thread_id"] = thread_id
 
-                return redirect(url_for("chat"))
-                
-            except Exception as e:
-                logger.error(f"Error creating thread: {str(e)}")
-                db.session.rollback()
-                flash("Error starting session", "error")
-                return redirect(url_for("index"))
-        
-        # Fallback return for unexpected scenarios
-        return redirect(url_for("index"))
-        
-    except Exception as e:
-        logger.error(f"Error in index route: {str(e)}")
-        flash("An unexpected error occurred", "error")
-        return redirect(url_for("index"))
+            return redirect(url_for("chat"))
+
+        except Exception as e:
+            logger.error(f"Error in index: {str(e)}")
+            flash("An error occurred", "error")
+            return redirect(url_for("index"))
+
+    return render_template("index.html")
 
 @app.route("/chat", methods=["GET", "POST"])
 @login_required
