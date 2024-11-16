@@ -1,7 +1,7 @@
 import os
 import time
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import Flask, render_template, request, session, redirect, url_for, jsonify, flash, Response
 from flask_sqlalchemy import SQLAlchemy
 from config import Config
@@ -45,21 +45,33 @@ def inject_year():
 # Models
 class UserThread(db.Model):
     __tablename__ = 'user_threads'
+    
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), nullable=False)
     thread_id = db.Column(db.String(100), unique=True, nullable=False)
-    industry = db.Column(db.String(100))
-    company = db.Column(db.String(100))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    industry = db.Column(db.String(100), nullable=False)
+    company = db.Column(db.String(100), nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     
+    # Relationship with chat history
+    chats = db.relationship('ChatHistory', backref='thread', lazy=True,
+                          cascade='all, delete-orphan')
+
+    def __repr__(self):
+        return f'<UserThread {self.username} - {self.company}>'
+
 class ChatHistory(db.Model):
     __tablename__ = 'chat_history'
+    
     id = db.Column(db.Integer, primary_key=True)
     thread_id = db.Column(db.String(100), db.ForeignKey('user_threads.thread_id'))
     username = db.Column(db.String(100), nullable=False)
     prompt = db.Column(db.Text, nullable=False)
     response = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    def __repr__(self):
+        return f'<ChatHistory {self.username} - {self.timestamp}>'
 
 # Create tables
 with app.app_context():
@@ -82,28 +94,37 @@ def login_required(f):
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    if request.method == "GET":
-        previous_threads = []
-        if session.get('username'):
-            previous_threads = UserThread.query.filter_by(
-                username=session.get('username')
-            ).order_by(UserThread.created_at.desc()).all()
-        return render_template("index.html", previous_threads=previous_threads)
-
-    if request.method == "POST":
-        if 'thread_id' in request.form:
-            # Continue previous session
-            thread = UserThread.query.filter_by(thread_id=request.form['thread_id']).first()
-            if not thread:
-                flash("Session not found", "error")
-                return redirect(url_for("index"))
+    try:
+        if request.method == "GET":
+            previous_threads = []
+            if session.get('username'):
+                # Get previous threads for logged in user
+                previous_threads = UserThread.query.filter_by(
+                    username=session.get('username')
+                ).order_by(UserThread.created_at.desc()).all()
+                
+            return render_template("index.html", previous_threads=previous_threads)
+        
+        elif request.method == "POST":
+            # Handle continuing previous session
+            if 'thread_id' in request.form:
+                thread = UserThread.query.filter_by(
+                    thread_id=request.form.get('thread_id')
+                ).first()
+                
+                if not thread:
+                    flash("Session not found", "error")
+                    return redirect(url_for("index"))
+                
+                # Set session data
+                session["username"] = thread.username
+                session["industry"] = thread.industry
+                session["company"] = thread.company
+                session["thread_id"] = thread.thread_id
+                
+                return redirect(url_for("chat"))
             
-            session["username"] = thread.username
-            session["industry"] = thread.industry
-            session["company"] = thread.company
-            session["thread_id"] = thread.thread_id
-        else:
-            # Start new session
+            # Handle new session creation
             username = request.form.get("username")
             industry = request.form.get("industry")
             company = request.form.get("company")
@@ -113,7 +134,10 @@ def index():
                 return redirect(url_for("index"))
 
             try:
+                # Create new OpenAI thread
                 thread = openai_client.beta.threads.create()
+                
+                # Create new user thread in database
                 user_thread = UserThread(
                     username=username,
                     thread_id=thread.id,
@@ -123,16 +147,27 @@ def index():
                 db.session.add(user_thread)
                 db.session.commit()
 
+                # Set session data
                 session["username"] = username
                 session["industry"] = industry
                 session["company"] = company
                 session["thread_id"] = thread.id
+
+                return redirect(url_for("chat"))
+                
             except Exception as e:
                 logger.error(f"Error creating thread: {str(e)}")
+                db.session.rollback()
                 flash("Error starting session", "error")
                 return redirect(url_for("index"))
-
-        return redirect(url_for("chat"))
+        
+        # Fallback return for unexpected scenarios
+        return redirect(url_for("index"))
+        
+    except Exception as e:
+        logger.error(f"Error in index route: {str(e)}")
+        flash("An unexpected error occurred", "error")
+        return redirect(url_for("index"))
 
 @app.route("/chat", methods=["GET", "POST"])
 @login_required

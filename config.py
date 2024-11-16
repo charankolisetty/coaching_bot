@@ -9,6 +9,10 @@ class Config:
     if SQLALCHEMY_DATABASE_URI and SQLALCHEMY_DATABASE_URI.startswith('postgres://'):
         SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace('postgres://', 'postgresql://', 1)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_pre_ping': True,  # Enable connection health checks
+        'pool_recycle': 3600,   # Recycle connections after 1 hour
+    }
     OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
     ASSISTANT_ID = os.getenv('ASSISTANT_ID')
 
