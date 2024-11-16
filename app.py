@@ -8,20 +8,20 @@ from config import Config
 from openai import OpenAI, OpenAIError
 from werkzeug.middleware.proxy_fix import ProxyFix
 from datetime import datetime
-import functools
+from functools import wraps
+from dotenv import load_dotenv
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Admin credentials (store these securely in production)
-ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD = "Charan@2024"  # Use environment variable in production
+
+load_dotenv()
 
 def admin_required(f):
-    @functools.wraps(f)
+    @wraps(f)
     def decorated_function(*args, **kwargs):
         auth = request.authorization
-        if not auth or auth.username != ADMIN_USERNAME or auth.password != ADMIN_PASSWORD:
+        if not auth or auth.username != os.getenv('ADMIN_USERNAME') or auth.password != os.getenv('ADMIN_PASSWORD'):
             return Response(
                 'Could not verify your access level for that URL.\n'
                 'You have to login with proper credentials', 401,
