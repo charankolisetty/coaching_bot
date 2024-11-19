@@ -8,17 +8,24 @@
     <div class="p-4 bg-gradient-to-r from-[#E6007E] via-[#9B3899] to-[#1B1464] border-b">
         <div class="flex items-center justify-between">
             <div class="flex items-center space-x-2">
-                <img src="{{ url_for('static', filename='images/meeraq-logo.png') }}" alt="Meeraq" class="h-8">
-                <h2 class="text-xl font-semibold text-white">Coach Bot</h2>
+                <span class="text-2xl font-bold text-white" style="font-family: 'Arial', sans-serif;">
+                    meeraq
+                    <span class="ml-2 text-xl font-normal">Coach Bot</span>
+                </span>
             </div>
-            <div class="flex items-center space-x-4">
-                <span class="text-white text-sm">{{ session.get('username') }}</span>
-                <a href="{{ url_for('history') }}" 
-                   class="bg-white/10 text-white px-3 py-1 rounded-full hover:bg-white/20 transition-colors">
+            <div class="flex items-center space-x-3">
+                <span class="text-white text-sm">
+                    <i class="fas fa-user mr-1"></i>
+                    {{ session.get('username') }}
+                </span>
+                <a href="{{ url_for('chat_history') }}" 
+                   class="bg-white/10 text-white text-sm px-3 py-1 rounded-full hover:bg-white/20 transition-colors">
+                    <i class="fas fa-history mr-1"></i>
                     History
                 </a>
                 <a href="{{ url_for('logout') }}" 
-                   class="bg-white/10 text-white px-3 py-1 rounded-full hover:bg-white/20 transition-colors">
+                   class="bg-white/10 text-white text-sm px-3 py-1 rounded-full hover:bg-white/20 transition-colors">
+                    <i class="fas fa-sign-out-alt mr-1"></i>
                     Exit
                 </a>
             </div>
@@ -34,16 +41,16 @@
             </div>
         </div>
 
-        <!-- Messages -->
+        <!-- Messages will be added here -->
         {% for message in chat_history %}
         <div class="flex flex-col space-y-2">
             <div class="flex justify-end">
-                <div class="message user-message bg-gradient-to-r from-[#E6007E] to-[#9B3899]" data-time="{{ message.timestamp.strftime('%I:%M %p') if message.timestamp else '' }}">
+                <div class="message user-message bg-gradient-to-r from-[#E6007E] to-[#9B3899]" data-time="{{ message.timestamp|format_time if message.timestamp else '' }}">
                     <p class="text-white">{{ message.prompt }}</p>
                 </div>
             </div>
             <div class="flex items-start space-x-2">
-                <div class="message bot-message bg-white" data-time="{{ message.timestamp.strftime('%I:%M %p') if message.timestamp else '' }}">
+                <div class="message bot-message bg-white" data-time="{{ message.timestamp|format_time if message.timestamp else '' }}">
                     <p class="text-gray-800">{{ message.response }}</p>
                 </div>
             </div>
@@ -52,7 +59,7 @@
     </div>
 
     <!-- Input area -->
-    <div class="border-t p-4 bg-white relative">
+    <div class="border-t p-4 bg-white">
         <form id="chat-form" class="flex space-x-4">
             <textarea
                 id="prompt"
@@ -67,10 +74,6 @@
                 <span>Send</span>
             </button>
         </form>
-        <!-- Time display outside input box -->
-        <div class="absolute top-0 right-4 transform -translate-y-full bg-white/80 px-2 py-1 rounded text-sm text-gray-600">
-            <span id="current-time"></span>
-        </div>
     </div>
 </div>
 {% endblock %}

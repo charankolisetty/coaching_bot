@@ -1,21 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Coach Bot - {% block title %}{% endblock %}</title>
-    
+
     <!-- Tailwind CSS -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    
+
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
+
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    
+
     {% block styles %}{% endblock %}
 </head>
+
 <body class="bg-gray-50 min-h-screen flex flex-col">
     <!-- Navigation -->
     <nav class="bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg">
@@ -25,22 +27,22 @@
                     <i class="fas fa-robot text-2xl"></i>
                     <a href="{{ url_for('index') }}" class="text-2xl font-bold hover:text-blue-100">Coach Bot</a>
                 </div>
-                
+
                 {% if session.get('username') %}
                 <div class="flex items-center space-x-4">
                     <span class="text-sm">
                         <i class="fas fa-user mr-2"></i>{{ session.get('username') }}
                     </span>
-                    <a href="{{ url_for('chat') }}" 
-                       class="text-sm bg-white text-blue-600 px-3 py-1 rounded-full hover:bg-blue-50 transition-colors">
+                    <a href="{{ url_for('chat') }}"
+                        class="text-sm bg-white text-blue-600 px-3 py-1 rounded-full hover:bg-blue-50 transition-colors">
                         <i class="fas fa-comments mr-1"></i>Chat
                     </a>
-                    <a href="{{ url_for('chat_history') }}" 
-                       class="text-sm bg-white text-blue-600 px-3 py-1 rounded-full hover:bg-blue-50 transition-colors">
+                    <a href="{{ url_for('chat_history') }}"
+                        class="text-sm bg-white text-blue-600 px-3 py-1 rounded-full hover:bg-blue-50 transition-colors">
                         <i class="fas fa-history mr-1"></i>History
                     </a>
-                    <a href="{{ url_for('logout') }}" 
-                       class="text-sm bg-white text-blue-600 px-3 py-1 rounded-full hover:bg-blue-50 transition-colors">
+                    <a href="{{ url_for('logout') }}"
+                        class="text-sm bg-white text-blue-600 px-3 py-1 rounded-full hover:bg-blue-50 transition-colors">
                         <i class="fas fa-sign-out-alt mr-1"></i>Exit
                     </a>
                 </div>
@@ -51,20 +53,20 @@
 
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <div class="container mx-auto px-4 mt-4">
-                {% for category, message in messages %}
-                    <div class="rounded-lg p-4 mb-4 text-sm flash-message 
+    {% if messages %}
+    <div class="container mx-auto px-4 mt-4">
+        {% for category, message in messages %}
+        <div class="rounded-lg p-4 mb-4 text-sm flash-message 
                               {% if category == 'error' %}
                                   bg-red-100 text-red-700
                               {% else %}
                                   bg-green-100 text-green-700
                               {% endif %}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
     {% endwith %}
 
     <!-- Main Content -->
@@ -76,9 +78,9 @@
     <footer class="bg-gray-800 text-gray-300 py-4 mt-8">
         <div class="container mx-auto px-4 text-center">
             <p class="text-sm">
-                © {{ year }} Coach Bot. Built with 
-                <i class="fas fa-heart text-red-500"></i> using 
-                <i class="fab fa-python"></i> Flask and 
+                © {{ year }} Coach Bot. Built with
+                <i class="fas fa-heart text-red-500"></i> using
+                <i class="fab fa-python"></i> Flask and
                 <i class="fas fa-robot"></i> OpenAI
             </p>
         </div>
@@ -86,19 +88,19 @@
 
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    
+
     {% block scripts %}{% endblock %}
 
     <script>
-        $(document).ready(function() {
+        $(document).ready(function () {
             // Fade out flash messages
-            setTimeout(function() {
+            setTimeout(function () {
                 $('.flash-message').fadeOut('slow');
             }, 5000);
 
             // Active link highlighting
             const path = window.location.pathname;
-            $('nav a').each(function() {
+            $('nav a').each(function () {
                 if ($(this).attr('href') === path) {
                     $(this).addClass('bg-blue-50 text-blue-700');
                 }
@@ -106,4 +108,5 @@
         });
     </script>
 </body>
+
 </html>

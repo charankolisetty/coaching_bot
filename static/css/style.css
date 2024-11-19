@@ -251,3 +251,20 @@ button:not(:disabled):active {
         transform: translateY(0);
     }
 }
+
+/* Header styles */
+.header-logo {
+    font-family: 'Arial', sans-serif;
+    font-weight: bold;
+    letter-spacing: -0.5px;
+}
+
+/* Button hover effects */
+.header-button {
+    transition: all 0.2s ease;
+}
+
+.header-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
