@@ -1,5 +1,6 @@
 import os
 import time
+import pytz
 import logging
 from datetime import datetime, timezone
 from flask import Flask, render_template, request, session, redirect, url_for, jsonify, flash, Response
@@ -14,7 +15,7 @@ from dotenv import load_dotenv
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
+IST = pytz.timezone('Asia/Kolkata')
 load_dotenv()
 
 def admin_required(f):
@@ -51,7 +52,7 @@ class UserThread(db.Model):
     thread_id = db.Column(db.String(100), unique=True, nullable=False)
     industry = db.Column(db.String(100), nullable=False)
     company = db.Column(db.String(100), nullable=False)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(IST))
     
     # Relationship with chat history
     chats = db.relationship('ChatHistory', backref='thread', lazy=True,
@@ -68,7 +69,7 @@ class ChatHistory(db.Model):
     username = db.Column(db.String(100), nullable=False)
     prompt = db.Column(db.Text, nullable=False)
     response = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(IST))
 
     def __repr__(self):
         return f'<ChatHistory {self.username} - {self.timestamp}>'
@@ -78,9 +79,14 @@ with app.app_context():
     db.create_all()
 
 # Template filters
-@app.template_filter('now')
-def datetime_now(format='%Y'):
-    return datetime.now().strftime(format)
+@app.template_filter('format_time')
+def format_time(timestamp):
+    if timestamp:
+        # Convert to IST if not already
+        if not timestamp.tzinfo:
+            timestamp = pytz.UTC.localize(timestamp).astimezone(IST)
+        return timestamp.strftime('%I:%M %p')  # 12-hour format with AM/PM
+    return ''
 
 # Route protection decorator
 def login_required(f):
@@ -221,7 +227,8 @@ def chat():
                         thread_id=thread_id,
                         username=session.get('username'),
                         prompt=prompt,
-                        response=response_text
+                        response=response_text,
+                        timestamp=datetime.now(IST)
                     )
                     db.session.add(chat_history)
                     db.session.commit()
@@ -244,6 +251,8 @@ def chat():
     try:
         thread_id = session.get("thread_id")
         chat_history = ChatHistory.query.filter_by(thread_id=thread_id).order_by(ChatHistory.timestamp).all()
+        for chat in chat_history:
+            chat.formatted_time = chat.timestamp.strftime('%I:%M %p')
         return render_template("chat.html", chat_history=chat_history)
     except Exception as e:
         logger.error(f"Error retrieving chat history: {str(e)}")

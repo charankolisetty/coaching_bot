@@ -17,5 +17,5 @@ class Config:
     ASSISTANT_ID = os.getenv('ASSISTANT_ID')
 
     # Admin credentials
-    ADMIN_USERNAME = os.getenv('ADMIN_USERNAME', 'admin')
-    ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'Charan@2024')
+    ADMIN_USERNAME = os.getenv('ADMIN_USERNAME')
+    ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
