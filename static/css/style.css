@@ -33,8 +33,7 @@
     position: relative;
     transition: all 0.2s ease;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    animation: slideIn 0.3s ease-out;
-    border: 1.5px solid rgba(0, 0, 0, 0.2);
+    border: 2px solid rgba(0, 0, 0, 0.1);
 }
 
 .message:hover {
@@ -55,31 +54,12 @@
     border-bottom-left-radius: 0.25rem;
 }
 
-/* Message text */
-.user-message p, .bot-message p {
-    color: inherit;
-    font-size: 1rem;
-    line-height: 1.5;
-}
-
-/* Timestamps */
-.message::after {
-    content: attr(data-time);
-    position: absolute;
-    bottom: -1.5rem;
-    font-size: 0.75rem;
-    color: #6b7280;
-}
-
-.user-message::after { right: 0.5rem; }
-.bot-message::after { left: 0.5rem; }
-
 /* Loading indicator */
 .typing-indicator {
     display: flex;
     padding: 0.75rem 1rem;
     background-color: white;
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    border: 2px solid rgba(0, 0, 0, 0.1);
     border-radius: 1rem;
     margin: 0.5rem 0;
     width: fit-content;
@@ -110,7 +90,7 @@
     }
 }
 
-@keyframes slideIn {
+@keyframes fadeIn {
     from {
         opacity: 0;
         transform: translateY(10px);
@@ -121,55 +101,22 @@
     }
 }
 
-/* Input styles */
-.chat-input {
-    min-height: 44px;
-    max-height: 200px;
-    overflow-y: auto;
-    resize: none;
-    padding: 0.75rem;
-    line-height: 1.5;
-    width: 100%;
-    border: 1.5px solid var(--meeraq-pink);
-    border-radius: 0.5rem;
-    transition: all 0.2s ease;
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
 }
 
-.chat-input:focus {
-    border-color: var(--meeraq-purple);
-    box-shadow: 0 0 0 3px rgba(155, 56, 153, 0.2);
-    outline: none;
-}
-
-/* Message container */
-#chat-messages {
-    scrollbar-gutter: stable;
-    padding-right: 1rem;
-}
-
-/* Form states */
+/* Form styles */
 .disabled {
     opacity: 0.7;
     pointer-events: none;
     transition: opacity 0.3s ease;
 }
 
-/* Error styling */
+/* Error message */
 .error-message {
     background-color: #fee2e2 !important;
-    border: 1px solid #fecaca;
+    border: 2px solid #fecaca;
     color: #dc2626;
-}
-
-/* System message */
-.system-message {
-    background-color: #f3f4f6;
-    border: 1px dashed #d1d5db;
-    text-align: center;
-    margin: 1rem auto;
-    max-width: 90%;
-    font-style: italic;
-    color: #6b7280;
 }
 
 /* Mobile optimizations */
