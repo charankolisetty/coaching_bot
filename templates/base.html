@@ -20,12 +20,12 @@
 
 <body class="bg-gray-50 min-h-screen flex flex-col">
     <!-- Navigation -->
-    <nav class="bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg">
+    <nav class="bg-gradient-to-r from-meeraq-blue to-meeraq-purple text-white shadow-lg">
         <div class="container mx-auto px-4 py-3">
             <div class="flex justify-between items-center">
                 <div class="flex items-center space-x-2">
-                    <i class="fas fa-robot text-2xl"></i>
-                    <a href="{{ url_for('index') }}" class="text-2xl font-bold hover:text-blue-100">Meeraq Coach Bot</a>
+                    <i class="fas fa-robot text-2xl text-meeraq-pink"></i>
+                    <a href="{{ url_for('index') }}" class="text-2xl font-bold hover:text-meeraq-pink">Meeraq Coach Bot</a>
                 </div>
 
                 {% if session.get('username') %}
