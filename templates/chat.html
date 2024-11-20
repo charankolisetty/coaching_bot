@@ -46,17 +46,17 @@
 
         <!-- Messages -->
         {% for message in chat_history %}
-        <div class="flex flex-col space-y-4">
+        <div class="flex flex-col space-y-4 mb-4">  <!-- Added mb-4 for better spacing -->
             <!-- User message -->
             <div class="flex justify-end">
-                <div class="message user-message">
-                    <p class="text-white">{{ message.prompt }}</p>
+                <div class="message user-message" data-time="${time}">
+                    <p class="text-white">${text}</p>
                 </div>
             </div>
             <!-- Bot message -->
             <div class="flex items-start">
-                <div class="message bot-message">
-                    <p class="text-gray-800">{{ message.response }}</p>
+                <div class="message bot-message" data-time="${time}">
+                    <p class="text-[#212A3E]">${text}</p>
                 </div>
             </div>
         </div>
