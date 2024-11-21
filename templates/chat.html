@@ -3,7 +3,7 @@
 {% block title %}Meeraq Coach Bot{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto bg-gray-800 rounded-lg shadow-md h-[80vh] flex flex-col">
+<div class="max-w-4xl mx-auto bg-white rounded-lg shadow-md h-[80vh] flex flex-col">
     <!-- Header with gradient -->
     <div class="p-4 bg-gradient-to-r from-[#E6007E] via-[#9B3899] to-[#1B1464] border-b">
         <div class="flex items-center justify-between">
@@ -37,22 +37,17 @@
 
     <!-- Chat messages area -->
     <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-white">
-        <!-- Welcome message -->
-        <div class="flex items-start space-x-2">
-            <div class="message bot-message">
-                <p class="text-gray-800">Hi! I'm your AI Coach Bot, thoughtfully crafted by the Meeraq team. What would you like to discuss in today's session?</p>
-            </div>
-        </div>
-
         <!-- Messages -->
         {% for message in chat_history %}
         <div class="flex flex-col space-y-4">
+            {% if not loop.first %}  <!-- Skip showing first user message -->
             <!-- User message -->
             <div class="flex justify-end">
                 <div class="message user-message">
                     <p class="text-white">{{ message.prompt }}</p>
                 </div>
             </div>
+            {% endif %}
             <!-- Bot message -->
             <div class="flex items-start">
                 <div class="message bot-message">

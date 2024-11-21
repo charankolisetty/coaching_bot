@@ -146,8 +146,39 @@ def index():
                     flash("Session not found", "error")
                     return redirect(url_for("index"))
             else:
-                # Create new session
+                # Create new thread
                 thread = openai_client.beta.threads.create()
+                
+                # Send initial context message
+                openai_client.beta.threads.messages.create(
+                    thread_id=thread.id,
+                    role="user",
+                    content=f"My name is {username}, and I work in the {industry} industry at {company}."
+                )
+
+                # Get first assistant response
+                run = openai_client.beta.threads.runs.create(
+                    thread_id=thread.id,
+                    assistant_id=app.config["ASSISTANT_ID"]
+                )
+
+                # Wait for completion
+                while True:
+                    run_status = openai_client.beta.threads.runs.retrieve(
+                        thread_id=thread.id,
+                        run_id=run.id
+                    )
+                    if run_status.status == "completed":
+                        break
+                    time.sleep(1)
+
+                # Get assistant's response
+                messages = openai_client.beta.threads.messages.list(
+                    thread_id=thread.id
+                )
+                initial_response = messages.data[0].content[0].text.value
+
+                # Create new thread in database
                 user_thread = UserThread(
                     username=username,
                     thread_id=thread.id,
@@ -155,14 +186,23 @@ def index():
                     company=company
                 )
                 db.session.add(user_thread)
+
+                # Save initial exchange in chat history
+                chat_history = ChatHistory(
+                    thread_id=thread.id,
+                    username=username,
+                    prompt=f"My name is {username}, and I work in the {industry} industry at {company}.",
+                    response=initial_response,
+                    timestamp=datetime.now(IST)
+                )
+                db.session.add(chat_history)
                 db.session.commit()
-                thread_id = thread.id
 
             # Set session data
             session["username"] = username
             session["industry"] = industry
             session["company"] = company
-            session["thread_id"] = thread_id
+            session["thread_id"] = thread_id or thread.id
 
             return redirect(url_for("chat"))
 
@@ -196,9 +236,8 @@ def chat():
 
             # Run the assistant
             run = openai_client.beta.threads.runs.create(
-                thread_id=thread_id,
-                assistant_id=app.config["ASSISTANT_ID"],
-                instructions=f"Consider the user's background: '{username}' works in the '{industry}' industry at '{company}'."
+            thread_id=thread_id,
+            assistant_id=app.config["ASSISTANT_ID"]
             )
 
             max_attempts = 30  # Maximum 30 seconds wait
