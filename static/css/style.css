@@ -4,6 +4,11 @@
     --meeraq-blue: #1B1464;
 }
 
+body {
+    padding-top: 64px; /* Adjust for fixed header */
+    padding-bottom: 64px; /* Adjust for fixed footer */
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
     width: 6px;
@@ -39,6 +44,11 @@
 .message:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+#chat-messages {
+    max-height: calc(100vh - 160px); /* Adjust height considering header and footer */
+    overflow-y: auto;
 }
 
 .user-message {
