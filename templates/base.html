@@ -23,25 +23,22 @@
     <nav class="bg-black text-white fixed top-0 left-0 w-full shadow-lg z-50">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
             <!-- Company Logo -->
-            <div class="flex items-center space-x-2">
+            <div class="flex items-center">
                 <img src="https://meeraq.com/wp-content/uploads/2023/04/download-16.png" alt="Meeraq Logo" class="h-10">
-                <a href="{{ url_for('index') }}" class="text-xl font-bold hover:text-gray-400">
-                    Meeraq
-                </a>
             </div>
 
             {% if session.get('username') %}
             <div class="flex items-center space-x-4">
                 <a href="{{ url_for('chat') }}" 
-                   class="bg-gradient-to-r from-[#E6007E] to-[#1B1464] text-white px-4 py-2 rounded hover:opacity-80">
+                   class="bg-gradient-to-r from-[#E6007E] to-[#1B1464] text-white px-4 py-2 rounded hover:opacity-90">
                    Chat
                 </a>
                 <a href="{{ url_for('chat_history') }}" 
-                   class="bg-gradient-to-r from-[#E6007E] to-[#1B1464] text-white px-4 py-2 rounded hover:opacity-80">
+                   class="bg-gradient-to-r from-[#E6007E] to-[#1B1464] text-white px-4 py-2 rounded hover:opacity-90">
                    History
                 </a>
                 <a href="{{ url_for('logout') }}" 
-                   class="bg-gradient-to-r from-[#E6007E] to-[#1B1464] text-white px-4 py-2 rounded hover:opacity-80">
+                   class="bg-gradient-to-r from-[#E6007E] to-[#1B1464] text-white px-4 py-2 rounded hover:opacity-90">
                    Exit
                 </a>
             </div>
@@ -91,18 +88,9 @@
 
     <script>
         $(document).ready(function () {
-            // Fade out flash messages
             setTimeout(function () {
                 $('.flash-message').fadeOut('slow');
             }, 5000);
-
-            // Active link highlighting
-            const path = window.location.pathname;
-            $('nav a').each(function () {
-                if ($(this).attr('href') === path) {
-                    $(this).addClass('bg-blue-50 text-blue-700');
-                }
-            });
         });
     </script>
 </body>
