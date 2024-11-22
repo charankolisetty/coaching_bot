@@ -26,15 +26,24 @@
             <div class="flex items-center space-x-2">
                 <img src="https://meeraq.com/wp-content/uploads/2023/04/download-16.png" alt="Meeraq Logo" class="h-10">
                 <a href="{{ url_for('index') }}" class="text-xl font-bold hover:text-gray-400">
-                    Coach Bot
+                    Meeraq
                 </a>
             </div>
 
             {% if session.get('username') %}
             <div class="flex items-center space-x-4">
-                <a href="{{ url_for('chat') }}" class="text-sm hover:text-gray-400">Chat</a>
-                <a href="{{ url_for('chat_history') }}" class="text-sm hover:text-gray-400">History</a>
-                <a href="{{ url_for('logout') }}" class="text-sm hover:text-gray-400">Exit</a>
+                <a href="{{ url_for('chat') }}" 
+                   class="bg-gradient-to-r from-[#E6007E] to-[#1B1464] text-white px-4 py-2 rounded hover:opacity-80">
+                   Chat
+                </a>
+                <a href="{{ url_for('chat_history') }}" 
+                   class="bg-gradient-to-r from-[#E6007E] to-[#1B1464] text-white px-4 py-2 rounded hover:opacity-80">
+                   History
+                </a>
+                <a href="{{ url_for('logout') }}" 
+                   class="bg-gradient-to-r from-[#E6007E] to-[#1B1464] text-white px-4 py-2 rounded hover:opacity-80">
+                   Exit
+                </a>
             </div>
             {% endif %}
         </div>
@@ -67,7 +76,7 @@
     <footer class="bg-gray-800 text-gray-300 py-4 fixed bottom-0 left-0 w-full z-50">
         <div class="container mx-auto px-4 text-center">
             <p class="text-sm">
-                © {{ year }} Coach Bot. Built with
+                © {{ year }} Meeraq. Built with
                 <i class="fas fa-heart text-red-500"></i> using
                 <i class="fab fa-python"></i> Flask and
                 <i class="fas fa-robot"></i> OpenAI
