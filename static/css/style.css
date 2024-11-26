@@ -7,8 +7,10 @@
 body {
     padding-top: 64px; /* Adjust for fixed header */
     padding-bottom: 64px; /* Adjust for fixed footer */
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
-
 /* Custom scrollbar */
 ::-webkit-scrollbar {
     width: 6px;
@@ -47,8 +49,10 @@ body {
 }
 
 #chat-messages {
+    flex-grow: 1; /* Allow chat messages to take available vertical space */
     max-height: calc(100vh - 160px); /* Adjust height considering header and footer */
     overflow-y: auto;
+    margin-bottom: 64px; /* Space for the input box */
 }
 
 .user-message {
@@ -138,4 +142,16 @@ body {
         height: 5px;
         width: 5px;
     }
+}
+
+/* Added Styles for Fixed Input Box */
+.border-t.p-4.bg-white.fixed.bottom-0.w-full.max-w-3xl {
+    position: fixed; /* Fixed position at the bottom */
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    background-color: white;
+    padding: 16px;
+    box-shadow: 0px -2px 5px rgba(0, 0, 0, 0.1);
 }
