@@ -3,8 +3,8 @@
 {% block title %}Meeraq Chat{% endblock %}
 
 {% block content %}
-<div class="fixed inset-x-0 top-[64px] bottom-[60px] flex items-center justify-center px-4 py-2">
-    <div class="max-w-3xl w-full h-[calc(100vh-140px)] bg-gray-100 rounded-lg shadow-md flex flex-col">
+<div class="fixed inset-0 top-[64px] bottom-[60px] flex items-center justify-center px-4">
+    <div class="max-w-3xl w-full h-full bg-gray-100 rounded-lg shadow-md flex flex-col">
     <div class="p-4 bg-black text-white">
         <div class="flex items-center justify-center">
             <span class="text-2xl font-extrabold tracking-wider uppercase text-white">
@@ -74,10 +74,23 @@ $(document).ready(function() {
     });
 
     // Scroll to bottom function
-    function scrollToBottom() {
-        chatMessages.scrollTop(chatMessages[0].scrollHeight);
+    function scrollToBottom(animate = true) {
+        const scrollHeight = chatMessages[0].scrollHeight;
+        if (animate) {
+            chatMessages.animate({ scrollTop: scrollHeight }, {
+                duration: 300,
+                easing: 'swing',
+                complete: () => {
+                    // Double-check scroll position after animation
+                    if (chatMessages.scrollTop() + chatMessages.innerHeight() < scrollHeight) {
+                        chatMessages.scrollTop(scrollHeight);
+                    }
+                }
+            });
+        } else {
+            chatMessages.scrollTop(scrollHeight);
+        }
     }
-
     // Initial scroll
     scrollToBottom();
 
