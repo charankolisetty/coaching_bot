@@ -4,12 +4,22 @@
     --meeraq-blue: #1B1464;
 }
 
+/* Enable scrolling for the whole page */
 body {
-    padding-top: 64px; /* Adjust for fixed header */
-    padding-bottom: 64px; /* Adjust for fixed footer */
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
+    overflow-y: auto; /* Allow scrolling for the entire page */
+    height: auto; /* Remove restriction of height to let the body scroll */
+}
+
+/* Chat container styling */
+.chat-container {
+    margin: 64px auto; /* Adjust to leave space for the header */
+    padding-bottom: 64px; /* Leave space at the bottom for scrolling */
+    max-width: 800px; /* Center the chatbox on the page */
+    width: 100%;
+    background-color: #f9f9f9;
+    box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
 }
 
 /* Custom scrollbar */
@@ -49,22 +59,21 @@ body {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* Move the input box upwards */
+#chat-messages {
+    max-height: calc(100vh - 200px); /* Adjust height considering header and footer */
+    overflow-y: auto; /* Enable scrolling within the chat messages */
+    padding-bottom: 96px; /* Ensure space for the input box */
+}
+
+/* Input area */
 .border-t.p-4.bg-white {
     position: sticky;
-    bottom: 16px; /* Adjusted from 0 to 16px to move it up */
-    z-index: 10; /* Ensure it stays above chat messages */
+    bottom: 0;
+    z-index: 10;
     width: 100%;
     background-color: white;
     padding: 16px;
     box-shadow: 0px -2px 5px rgba(0, 0, 0, 0.1);
-    margin-bottom: 16px; /* Add some spacing below for visual balance */
-}
-
-/* Adjust chat messages area for input box height */
-#chat-messages {
-    max-height: calc(100vh - 160px); /* Adjust height considering header and repositioned input area */
-    padding-bottom: 96px; /* Increase bottom padding to accommodate the raised input box */
 }
 
 
