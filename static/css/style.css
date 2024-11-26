@@ -49,21 +49,24 @@ body {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-#chat-messages {
-    max-height: calc(100vh - 128px); /* Adjust height considering header and fixed input area */
-    padding-bottom: 80px; /* Provide space for the input area */
-    overflow-y: auto;
-}
-
+/* Move the input box upwards */
 .border-t.p-4.bg-white {
     position: sticky;
-    bottom: 0;
+    bottom: 16px; /* Adjusted from 0 to 16px to move it up */
     z-index: 10; /* Ensure it stays above chat messages */
     width: 100%;
     background-color: white;
     padding: 16px;
     box-shadow: 0px -2px 5px rgba(0, 0, 0, 0.1);
+    margin-bottom: 16px; /* Add some spacing below for visual balance */
 }
+
+/* Adjust chat messages area for input box height */
+#chat-messages {
+    max-height: calc(100vh - 160px); /* Adjust height considering header and repositioned input area */
+    padding-bottom: 96px; /* Increase bottom padding to accommodate the raised input box */
+}
+
 
 textarea#prompt {
     height: auto;
