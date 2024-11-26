@@ -153,7 +153,7 @@ def index():
                 openai_client.beta.threads.messages.create(
                     thread_id=thread.id,
                     role="user",
-                    content=f"My name is {username}, and I work in the {industry} industry at {company}."
+                    content=f"Hi, My name is {username}, and I work in the {industry} industry at {company}."
                 )
 
                 # Get first assistant response
