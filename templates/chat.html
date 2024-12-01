@@ -3,14 +3,14 @@
 {% block title %}Meeraq Chat{% endblock %}
 
 {% block content %}
-<div class="chat-container h-screen flex flex-col">
+<div class="chat-container">
     <!-- Chatbox Header -->
-    <div class="p-4 bg-black text-white sticky top-0 z-10 shadow-md">
-        <h1 class="text-2xl font-extrabold text-center tracking-wide absolute top-0">COACH BOT</h1>
+    <div class="p-3 bg-black text-white">
+        <h1 class="text-2xl font-extrabold text-center">COACH BOT</h1>
     </div>
 
     <!-- Chat messages area -->
-    <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-white h-[calc(100vh-160px)]">
+    <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-white">
         {% for message in chat_history %}
         <div class="flex flex-col space-y-4">
             {% if not loop.first %}
@@ -32,44 +32,18 @@
     </div>
 
     <!-- Input area -->
-    <div class="border-t p-4 bg-white sticky absolute bottom-0 shadow-top">
+    <div class="border-t p-4 bg-white">
         <form id="chat-form" class="flex space-x-4">
-            <div class="flex-1 relative">
-                <textarea id="prompt" name="prompt" required
-                    class="w-full rounded-lg border-2 border-[#E6007E] focus:border-[#9B3899] focus:ring-[#9B3899] py-3 px-4 resize-none max-h-32 min-h-[44px]"
-                    placeholder="Type your message..." rows="1"></textarea>
-            </div>
+            <textarea id="prompt" name="prompt" required
+                class="flex-1 rounded-lg border-[#E6007E] focus:border-[#9B3899] focus:ring-[#9B3899] py-2 px-4 resize-none"
+                placeholder="Type your message..." rows="1"></textarea>
             <button type="submit"
-                class="bg-gradient-to-r from-[#E6007E] to-[#1B1464] text-white px-6 py-2 rounded-lg hover:opacity-90 transition-all duration-200 h-[44px] flex-shrink-0 flex items-center justify-center min-w-[100px]">
+                class="bg-gradient-to-r from-[#E6007E] to-[#1B1464] text-black px-6 py-2 rounded-lg hover:opacity-90 transition-all duration-200 h-[44px] flex-shrink-0 flex items-center justify-center min-w-[100px]">
                 <span>Send</span>
             </button>
         </form>
     </div>
 </div>
-
-<style>
-    .shadow-top {
-        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-    }
-    
-    #chat-messages {
-        scrollbar-width: thin;
-        scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
-    }
-    
-    #chat-messages::-webkit-scrollbar {
-        width: 6px;
-    }
-    
-    #chat-messages::-webkit-scrollbar-track {
-        background: transparent;
-    }
-    
-    #chat-messages::-webkit-scrollbar-thumb {
-        background-color: rgba(156, 163, 175, 0.5);
-        border-radius: 3px;
-    }
-</style>
 
 {% endblock %}
 
@@ -85,7 +59,7 @@
         // Auto-resize textarea
         promptInput.on('input', function () {
             this.style.height = 'auto';
-            this.style.height = Math.min(this.scrollHeight, 200) + 'px'; // Max height of 200px
+            this.style.height = (this.scrollHeight) + 'px';
             if (this.value === '') {
                 this.style.height = '44px';
             }
@@ -109,9 +83,8 @@
                 chatMessages.scrollTop(scrollHeight);
             }
         }
-
         // Initial scroll
-        scrollToBottom(false);
+        scrollToBottom();
 
         chatForm.on('submit', function (e) {
             e.preventDefault();
@@ -159,12 +132,12 @@
                     <div class="message user-message">
                         <p class="text-white">${text}</p>
                     </div>
-                   </div>`
+               </div>`
                 : `<div class="flex items-start">
                     <div class="message bot-message">
                         <p class="text-gray-800">${text}</p>
                     </div>
-                   </div>`;
+               </div>`;
             chatMessages.append(messageHTML);
             scrollToBottom();
         }
@@ -198,21 +171,6 @@
                 e.preventDefault();
                 chatForm.submit();
             }
-        });
-
-        // Handle scrolling
-        let lastScrollTop = 0;
-        chatMessages.on('scroll', function() {
-            const st = $(this).scrollTop();
-            // Only auto-scroll if we're near the bottom and scrolling down
-            if (st > lastScrollTop) {
-                const scrollHeight = $(this)[0].scrollHeight;
-                const scrollPosition = st + $(this).height();
-                if (scrollHeight - scrollPosition < 100) {
-                    scrollToBottom(true);
-                }
-            }
-            lastScrollTop = st;
         });
     });
 </script>
