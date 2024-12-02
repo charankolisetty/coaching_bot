@@ -52,7 +52,7 @@ class UserThread(db.Model):
     thread_id = db.Column(db.String(100), unique=True, nullable=False)
     industry = db.Column(db.String(100), nullable=False)
     company = db.Column(db.String(100), nullable=False)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(IST))
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(IST))
     
     # Relationship with chat history
     chats = db.relationship('ChatHistory', backref='thread', lazy=True,
@@ -69,7 +69,7 @@ class ChatHistory(db.Model):
     username = db.Column(db.String(100), nullable=False)
     prompt = db.Column(db.Text, nullable=False)
     response = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(IST))
+    timestamp = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(IST))
 
     def __repr__(self):
         return f'<ChatHistory {self.username} - {self.timestamp}>'
@@ -82,9 +82,10 @@ with app.app_context():
 @app.template_filter('format_time')
 def format_time(timestamp):
     if timestamp:
-        # Convert to IST if not already
         if not timestamp.tzinfo:
             timestamp = pytz.UTC.localize(timestamp).astimezone(IST)
+        else:
+            timestamp = timestamp.astimezone(IST)
         return timestamp.strftime('%I:%M %p')  # 12-hour format with AM/PM
     return ''
 
@@ -193,7 +194,7 @@ def index():
                     username=username,
                     prompt=f"My name is {username}, and I work in the {industry} industry at {company}.",
                     response=initial_response,
-                    timestamp=datetime.now(IST)
+                    timestamp=datetime.now().astimezone(IST)
                 )
                 db.session.add(chat_history)
                 db.session.commit()
@@ -290,13 +291,27 @@ def chat():
     try:
         thread_id = session.get("thread_id")
         chat_history = ChatHistory.query.filter_by(thread_id=thread_id).order_by(ChatHistory.timestamp).all()
+        
+        # Get user details for new session button
+        user_details = {
+            'username': session.get('username'),
+            'industry': session.get('industry'),
+            'company': session.get('company')
+        }
+        
+        # Format chat timestamps
         for chat in chat_history:
             chat.formatted_time = chat.timestamp.strftime('%I:%M %p')
-        return render_template("chat.html", chat_history=chat_history)
+        
+        return render_template(
+            "chat.html", 
+            chat_history=chat_history,
+            user_details=user_details  # Pass user details to template
+        )
     except Exception as e:
         logger.error(f"Error retrieving chat history: {str(e)}")
         flash("Error loading chat history", "error")
-        return render_template("chat.html", chat_history=[])
+        return render_template("chat.html", chat_history=[], user_details={})
 
 @app.route("/chat/history")
 @login_required

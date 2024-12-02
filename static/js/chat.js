@@ -1,4 +1,4 @@
-$(document).ready(function() {
+$(document).ready(function () {
     const chatMessages = $('#chat-messages');
     const chatForm = $('#chat-form');
     const promptInput = $('#prompt');
@@ -11,7 +11,7 @@ $(document).ready(function() {
     }
 
     // Auto-resize textarea with max height
-    promptInput.on('input', function() {
+    promptInput.on('input', function () {
         this.style.height = 'auto';
         this.style.height = Math.min(this.scrollHeight, 120) + 'px';
         if (this.value === '') {
@@ -23,8 +23,8 @@ $(document).ready(function() {
     function scrollToBottom(animate = true) {
         const scrollHeight = chatMessages[0].scrollHeight;
         if (animate) {
-            chatMessages.animate({ 
-                scrollTop: scrollHeight 
+            chatMessages.animate({
+                scrollTop: scrollHeight
             }, {
                 duration: 300,
                 easing: 'swing',
@@ -43,9 +43,9 @@ $(document).ready(function() {
     // Initial scroll
     scrollToBottom(false);
 
-    chatForm.on('submit', function(e) {
+    chatForm.on('submit', function (e) {
         e.preventDefault();
-        
+
         const prompt = promptInput.val().trim();
         if (!prompt) return;
 
@@ -70,7 +70,7 @@ $(document).ready(function() {
             url: '/chat',
             method: 'POST',
             data: { prompt: prompt },
-            success: function(response) {
+            success: function (response) {
                 removeTypingIndicator();
                 if (response.response) {
                     addMessage(response.response, 'bot');
@@ -78,12 +78,12 @@ $(document).ready(function() {
                     addMessage("I apologize, but I couldn't process your request. Please try again.", 'bot error');
                 }
             },
-            error: function(xhr) {
+            error: function (xhr) {
                 removeTypingIndicator();
                 const errorMessage = xhr.responseJSON?.error || 'An error occurred. Please try again.';
                 addMessage(errorMessage, 'bot error');
             },
-            complete: function() {
+            complete: function () {
                 chatForm.removeClass('disabled');
                 submitButton.html(originalButtonText);
                 submitButton.prop('disabled', false);
@@ -119,13 +119,13 @@ $(document).ready(function() {
     }
 
     function removeTypingIndicator() {
-        $('.typing-indicator').fadeOut(200, function() {
+        $('.typing-indicator').fadeOut(200, function () {
             $(this).remove();
         });
     }
 
     // Enhanced enter key handling
-    promptInput.on('keydown', function(e) {
+    promptInput.on('keydown', function (e) {
         if (e.which === 13 && !e.shiftKey) {
             e.preventDefault();
             if (!submitButton.prop('disabled')) {
@@ -135,9 +135,41 @@ $(document).ready(function() {
     });
 
     // Prevent form submission while disabled
-    chatForm.on('submit', function(e) {
+    chatForm.on('submit', function (e) {
         if (submitButton.prop('disabled')) {
             e.preventDefault();
         }
+    });
+
+    // Add this inside your $(document).ready function
+    $('#newSessionBtn').on('click', function () {
+        // Create form with existing user details
+        const form = $('<form>', {
+            'method': 'POST',
+            'action': '/'
+        });
+
+        // Add hidden fields with current session data
+        form.append($('<input>', {
+            'type': 'hidden',
+            'name': 'username',
+            'value': userDetails.username  // You'll need to pass this from Flask
+        }));
+
+        form.append($('<input>', {
+            'type': 'hidden',
+            'name': 'industry',
+            'value': userDetails.industry
+        }));
+
+        form.append($('<input>', {
+            'type': 'hidden',
+            'name': 'company',
+            'value': userDetails.company
+        }));
+
+        // Append form to body and submit
+        $('body').append(form);
+        form.submit();
     });
 });
