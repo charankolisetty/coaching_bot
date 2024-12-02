@@ -1,109 +1,55 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-md">
-    <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">Welcome to Coach Bot</h2>
-    
-    <form method="POST" id="initialForm" class="space-y-4">
-        <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700">Name</label>
-            <input type="text" name="username" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+<div class="login-container">
+    <div class="login-card">
+        <div class="text-center mb-6">
+            <img src="https://meeraq.com/wp-content/uploads/2023/04/download-16.png" alt="Meeraq Logo" class="h-12 mx-auto">
         </div>
-        <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700">Industry</label>
-            <input type="text" name="industry" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-        </div>
-        <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700">Company</label>
-            <input type="text" name="company" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-        </div>
+        
+        <h2 class="text-2xl font-bold mb-8 text-center gradient-text">
+            Welcome to Coach Bot
+        </h2>
+        
+        <form method="POST" id="initialForm" class="space-y-6">
+            <div class="space-y-2">
+                <label class="block text-sm font-semibold text-gray-700">Name</label>
+                <input type="text" name="username" required class="login-input" placeholder="Enter your name">
+            </div>
 
-        <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
-            Start Chat
-        </button>
-    </form>
+            <div class="space-y-2">
+                <label class="block text-sm font-semibold text-gray-700">Industry</label>
+                <input type="text" name="industry" required class="login-input" placeholder="Your industry">
+            </div>
+
+            <div class="space-y-2">
+                <label class="block text-sm font-semibold text-gray-700">Company</label>
+                <input type="text" name="company" required class="login-input" placeholder="Your company name">
+            </div>
+
+            <button type="submit" class="send-button w-full">
+                Start Chat
+            </button>
+        </form>
+    </div>
 </div>
 
 <!-- Session Selection Modal -->
-<div id="sessionModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center">
-    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-        <h3 class="text-lg font-bold mb-4">Choose Session</h3>
+<div id="sessionModal" class="session-modal hidden">
+    <div class="session-modal-content">
+        <h3 class="text-xl font-bold mb-6 gradient-text">Choose Session</h3>
         
         <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Previous Sessions Available</label>
-            <select id="sessionSelect" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Previous Sessions Available</label>
+            <select id="sessionSelect" class="session-select">
                 <option value="new">Start New Session</option>
-                <!-- Previous sessions will be populated here -->
             </select>
         </div>
 
-        <div class="flex justify-end space-x-4">
-            <button onclick="continueSession()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+        <div class="flex justify-end">
+            <button onclick="continueSession()" class="send-button">
                 Continue
             </button>
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-document.getElementById('initialForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    // Get form data
-    const formData = new FormData(this);
-    
-    // Send request to check for previous sessions
-    fetch('/check_sessions', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.previous_sessions && data.previous_sessions.length > 0) {
-            // Populate and show modal
-            const select = document.getElementById('sessionSelect');
-            // Keep the "Start New Session" option
-            select.innerHTML = '<option value="new">Start New Session</option>';
-            
-            // Add previous sessions
-            data.previous_sessions.forEach(session => {
-                const option = document.createElement('option');
-                option.value = session.thread_id;
-                option.textContent = `${session.created_at} - ${session.company}`;
-                select.appendChild(option);
-            });
-            
-            document.getElementById('sessionModal').classList.remove('hidden');
-        } else {
-            // No previous sessions, submit form directly
-            document.getElementById('initialForm').submit();
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        // On error, submit form directly
-        document.getElementById('initialForm').submit();
-    });
-});
-
-function continueSession() {
-    const select = document.getElementById('sessionSelect');
-    const selectedValue = select.value;
-    
-    if (selectedValue === 'new') {
-        // Submit original form for new session
-        document.getElementById('initialForm').submit();
-    } else {
-        // Submit with thread_id for existing session
-        const form = document.getElementById('initialForm');
-        const threadInput = document.createElement('input');
-        threadInput.type = 'hidden';
-        threadInput.name = 'thread_id';
-        threadInput.value = selectedValue;
-        form.appendChild(threadInput);
-        form.submit();
-    }
-}
-</script>
 {% endblock %}

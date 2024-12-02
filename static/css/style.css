@@ -302,3 +302,78 @@ footer p {
     margin: 0;
     font-size: 0.875rem;
 }
+
+
+/* Add these to your existing style.css */
+
+/* Login Page Specific Styles */
+.login-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--meeraq-pink), var(--meeraq-purple), var(--meeraq-blue));
+    padding: 1rem;
+}
+
+.login-card {
+    max-width: 28rem;
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(8px);
+}
+
+.login-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid rgba(230, 0, 126, 0.2);
+    border-radius: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.login-input:focus {
+    border-color: var(--meeraq-purple);
+    box-shadow: 0 0 0 2px rgba(155, 56, 153, 0.1);
+    outline: none;
+}
+
+.gradient-text {
+    background: linear-gradient(135deg, var(--meeraq-pink), var(--meeraq-blue));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+/* Modal Styles */
+.session-modal {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    z-index: 50;
+}
+
+.session-modal-content {
+    background-color: white;
+    border-radius: 1rem;
+    padding: 2rem;
+    max-width: 28rem;
+    width: 100%;
+    margin: 0 1rem;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.session-select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid rgba(230, 0, 126, 0.2);
+    border-radius: 0.5rem;
+    margin-top: 0.5rem;
+    background-color: white;
+}
