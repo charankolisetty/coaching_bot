@@ -1,3 +1,4 @@
+/* chat.js */
 $(document).ready(function() {
     const chatMessages = $('#chat-messages');
     const chatForm = $('#chat-form');
@@ -5,12 +6,7 @@ $(document).ready(function() {
     const submitButton = chatForm.find('button[type="submit"]');
     const originalButtonText = submitButton.html();
 
-    // Add initial welcome message if chat is empty
-    if (chatMessages.children().length === 0) {
-        addMessage("Welcome! How can I assist you today?", 'bot');
-    }
-
-    // Auto-resize textarea with max height
+    // Auto-resize textarea
     promptInput.on('input', function() {
         this.style.height = 'auto';
         this.style.height = Math.min(this.scrollHeight, 120) + 'px';
@@ -19,22 +15,11 @@ $(document).ready(function() {
         }
     });
 
-    // Improved scroll to bottom with smooth behavior
+    // Scroll to bottom function
     function scrollToBottom(animate = true) {
         const scrollHeight = chatMessages[0].scrollHeight;
         if (animate) {
-            chatMessages.animate({ 
-                scrollTop: scrollHeight 
-            }, {
-                duration: 300,
-                easing: 'swing',
-                complete: () => {
-                    // Double-check scroll position after animation
-                    if (chatMessages.scrollTop() + chatMessages.innerHeight() < scrollHeight) {
-                        chatMessages.scrollTop(scrollHeight);
-                    }
-                }
-            });
+            chatMessages.animate({ scrollTop: scrollHeight }, 300, 'swing');
         } else {
             chatMessages.scrollTop(scrollHeight);
         }
@@ -53,16 +38,15 @@ $(document).ready(function() {
         promptInput.css('height', '44px');
 
         // Disable form and show loading state
-        chatForm.addClass('disabled');
-        submitButton.html('<i class="fas fa-spinner fa-spin mr-2"></i>Sending...');
+        chatForm.addClass('pointer-events-none opacity-70');
+        submitButton.html('<i class="fas fa-spinner fa-spin mr-2"></i>Processing...');
         submitButton.prop('disabled', true);
-        promptInput.prop('disabled', true);
 
-        // Add user message with animation
+        // Add user message
         addMessage(prompt, 'user');
         promptInput.val('');
 
-        // Show typing indicator with animation
+        // Show typing indicator
         showTypingIndicator();
 
         // Send request to server
@@ -72,11 +56,7 @@ $(document).ready(function() {
             data: { prompt: prompt },
             success: function(response) {
                 removeTypingIndicator();
-                if (response.response) {
-                    addMessage(response.response, 'bot');
-                } else {
-                    addMessage("I apologize, but I couldn't process your request. Please try again.", 'bot error');
-                }
+                addMessage(response.response, 'bot');
             },
             error: function(xhr) {
                 removeTypingIndicator();
@@ -84,10 +64,9 @@ $(document).ready(function() {
                 addMessage(errorMessage, 'bot error');
             },
             complete: function() {
-                chatForm.removeClass('disabled');
+                chatForm.removeClass('pointer-events-none opacity-70');
                 submitButton.html(originalButtonText);
                 submitButton.prop('disabled', false);
-                promptInput.prop('disabled', false);
                 promptInput.focus();
                 scrollToBottom();
             }
@@ -96,7 +75,7 @@ $(document).ready(function() {
 
     function addMessage(text, type) {
         const messageHTML = `
-            <div class="message-group animate-fade-in">
+            <div class="message-group">
                 <div class="message ${type}-message">
                     <p>${text}</p>
                 </div>
@@ -108,7 +87,7 @@ $(document).ready(function() {
 
     function showTypingIndicator() {
         const indicator = `
-            <div class="typing-indicator animate-fade-in">
+            <div class="typing-indicator">
                 <span></span>
                 <span></span>
                 <span></span>
@@ -119,25 +98,14 @@ $(document).ready(function() {
     }
 
     function removeTypingIndicator() {
-        $('.typing-indicator').fadeOut(200, function() {
-            $(this).remove();
-        });
+        $('.typing-indicator').remove();
     }
 
-    // Enhanced enter key handling
+    // Handle enter key
     promptInput.on('keydown', function(e) {
         if (e.which === 13 && !e.shiftKey) {
             e.preventDefault();
-            if (!submitButton.prop('disabled')) {
-                chatForm.submit();
-            }
-        }
-    });
-
-    // Prevent form submission while disabled
-    chatForm.on('submit', function(e) {
-        if (submitButton.prop('disabled')) {
-            e.preventDefault();
+            chatForm.submit();
         }
     });
 });
