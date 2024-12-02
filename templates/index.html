@@ -6,6 +6,7 @@
             Welcome to Coach Bot
         </h2>
         
+        <!-- Login Form -->
         <form method="POST" id="initialForm" class="space-y-6">
             <div class="space-y-2">
                 <label class="block text-sm font-semibold text-gray-700">Name</label>
@@ -29,8 +30,8 @@
     </div>
 </div>
 
-<!-- Session Selection Modal -->
-<div id="sessionModal" class="session-modal hidden">
+<!-- Session Modal (initially hidden) -->
+<div id="sessionModal" class="session-modal" style="display: none !important;">
     <div class="session-modal-content">
         <h3 class="text-xl font-bold mb-6 gradient-text">Choose Session</h3>
         
@@ -53,21 +54,15 @@
 {% block scripts %}
 <script>
 $(document).ready(function() {
-    const initialForm = $('#initialForm');
+    // Hide modal on page load
+    $('#sessionModal').hide();
 
-    initialForm.on('submit', function(e) {
+    $('#initialForm').on('submit', function(e) {
         e.preventDefault();
         
         const formData = new FormData(this);
-        const username = formData.get('username').trim();
-        const industry = formData.get('industry').trim();
-        const company = formData.get('company').trim();
         
-        if(!username || !industry || !company) {
-            alert('Please fill all fields');
-            return;
-        }
-
+        // First submit the form data to check sessions
         $.ajax({
             url: '/check_sessions',
             method: 'POST',
@@ -75,19 +70,24 @@ $(document).ready(function() {
             processData: false,
             contentType: false,
             success: function(response) {
+                // Only show modal if previous sessions exist
                 if (response.previous_sessions && response.previous_sessions.length > 0) {
                     const select = $('#sessionSelect');
-                    select.html('<option value="new">Start New Session</option>');
+                    // Clear previous options except the first one
+                    select.find('option:not(:first)').remove();
                     
+                    // Add new options
                     response.previous_sessions.forEach(session => {
                         select.append(`<option value="${session.thread_id}">
                             ${session.created_at} - ${session.company}
                         </option>`);
                     });
                     
-                    $('#sessionModal').removeClass('hidden');
+                    // Show modal
+                    $('#sessionModal').fadeIn();
                 } else {
-                    initialForm[0].submit();
+                    // If no previous sessions, submit form directly
+                    $('#initialForm')[0].submit();
                 }
             },
             error: function() {
@@ -95,18 +95,23 @@ $(document).ready(function() {
             }
         });
     });
-
-    window.continueSession = function() {
-        const selectedValue = $('#sessionSelect').val();
-        
-        if (selectedValue !== 'new') {
-            initialForm.append(
-                `<input type="hidden" name="thread_id" value="${selectedValue}">`
-            );
-        }
-        
-        initialForm[0].submit();
-    };
 });
+
+// Continue session function
+function continueSession() {
+    const selectedValue = $('#sessionSelect').val();
+    const form = $('#initialForm');
+    
+    // Remove any existing thread_id input
+    form.find('input[name="thread_id"]').remove();
+    
+    if (selectedValue !== 'new') {
+        // Add thread_id input if selecting previous session
+        form.append(`<input type="hidden" name="thread_id" value="${selectedValue}">`);
+    }
+    
+    // Submit the form
+    form[0].submit();
+}
 </script>
 {% endblock %}
