@@ -49,3 +49,64 @@
     </div>
 </div>
 {% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    const initialForm = $('#initialForm');
+
+    initialForm.on('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const username = formData.get('username').trim();
+        const industry = formData.get('industry').trim();
+        const company = formData.get('company').trim();
+        
+        if(!username || !industry || !company) {
+            alert('Please fill all fields');
+            return;
+        }
+
+        $.ajax({
+            url: '/check_sessions',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.previous_sessions && response.previous_sessions.length > 0) {
+                    const select = $('#sessionSelect');
+                    select.html('<option value="new">Start New Session</option>');
+                    
+                    response.previous_sessions.forEach(session => {
+                        select.append(`<option value="${session.thread_id}">
+                            ${session.created_at} - ${session.company}
+                        </option>`);
+                    });
+                    
+                    $('#sessionModal').removeClass('hidden');
+                } else {
+                    initialForm[0].submit();
+                }
+            },
+            error: function() {
+                alert('An error occurred. Please try again.');
+            }
+        });
+    });
+
+    window.continueSession = function() {
+        const selectedValue = $('#sessionSelect').val();
+        
+        if (selectedValue !== 'new') {
+            initialForm.append(
+                `<input type="hidden" name="thread_id" value="${selectedValue}">`
+            );
+        }
+        
+        initialForm[0].submit();
+    };
+});
+</script>
+{% endblock %}
