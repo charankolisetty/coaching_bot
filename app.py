@@ -44,6 +44,11 @@ def inject_year():
     return {'year': datetime.now().year}
 
 # Models
+SESSION_DURATION = 20 * 60  # 20 minutes in seconds
+COACHING_DURATION = 14 * 60  # 14 minutes in seconds
+TESTING_DURATION = 4 * 60   # 4 minutes in seconds
+
+# Modify UserThread model to include timing fields
 class UserThread(db.Model):
     __tablename__ = 'user_threads'
     
@@ -53,13 +58,12 @@ class UserThread(db.Model):
     industry = db.Column(db.String(100), nullable=False)
     company = db.Column(db.String(100), nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(IST))
+    session_start = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(IST))
+    current_stage = db.Column(db.String(20), default='coaching')
     
-    # Relationship with chat history
+    # Existing relationships remain the same
     chats = db.relationship('ChatHistory', backref='thread', lazy=True,
                           cascade='all, delete-orphan')
-
-    def __repr__(self):
-        return f'<UserThread {self.username} - {self.company}>'
 
 class ChatHistory(db.Model):
     __tablename__ = 'chat_history'
@@ -213,105 +217,161 @@ def index():
 
     return render_template("index.html")
 
+# Add this function to check session timing
+def check_session_timing(thread_id):
+    thread = UserThread.query.filter_by(thread_id=thread_id).first()
+    if not thread:
+        return None
+    
+    current_time = datetime.now(IST)
+    elapsed_time = (current_time - thread.session_start).total_seconds()
+    
+    # Calculate remaining time in current stage
+    if thread.current_stage == 'coaching':
+        remaining_coaching_time = COACHING_DURATION - elapsed_time
+        if remaining_coaching_time <= 120 and remaining_coaching_time > 0:  # 2 minutes warning
+            return {
+                'stage': 'coaching',
+                'warning': True,
+                'message': 'Note: Coaching time is almost complete. Please start wrapping up this phase.'
+            }
+        elif elapsed_time >= COACHING_DURATION:
+            thread.current_stage = 'testing'
+            db.session.commit()
+            return {
+                'stage': 'testing',
+                'warning': False,
+                'message': 'Transitioning to testing phase.'
+            }
+    
+    # Check if entire session is about to end
+    if elapsed_time >= SESSION_DURATION - 120:  # 2 minutes before session ends
+        return {
+            'stage': thread.current_stage,
+            'warning': True,
+            'message': 'Session is ending soon. Please wrap up your current work.'
+        }
+    
+    return {
+        'stage': thread.current_stage,
+        'warning': False,
+        'message': None
+    }
+
 @app.route("/chat", methods=["GET", "POST"])
 @login_required
 def chat():
     if request.method == "POST":
-        prompt = request.form.get("prompt")
+        user_prompt = request.form.get("prompt")
         thread_id = session.get("thread_id")
-        username = session.get("username")
-        industry = session.get("industry")
-        company = session.get("company")
         
-        if not prompt or not thread_id:
+        if not user_prompt or not thread_id:
             return jsonify({"error": "Prompt and Thread ID are required"}), 400
 
         try:
-            # Add message to thread
-            message = openai_client.beta.threads.messages.create(
-                thread_id=thread_id,
-                role="user",
-                content=prompt
+            # Check session timing
+            timing_info = check_session_timing(thread_id)
+            if timing_info is None:
+                return jsonify({"error": "Invalid session"}), 400
+
+            # Create messages separately
+            messages_to_send = []
+            
+            # Add the user's message
+            messages_to_send.append(
+                openai_client.beta.threads.messages.create(
+                    thread_id=thread_id,
+                    role="user",
+                    content=user_prompt
+                )
             )
+            
+            # Add timing instruction as a separate system message if needed
+            if timing_info.get('warning'):
+                messages_to_send.append(
+                    openai_client.beta.threads.messages.create(
+                        thread_id=thread_id,
+                        role="user",
+                        content=f"[SYSTEM: {timing_info['message']}]"
+                    )
+                )
 
             # Run the assistant
             run = openai_client.beta.threads.runs.create(
-            thread_id=thread_id,
-            assistant_id=app.config["ASSISTANT_ID"]
+                thread_id=thread_id,
+                assistant_id=app.config["ASSISTANT_ID"]
             )
 
-            max_attempts = 30  # Maximum 30 seconds wait
+            max_attempts = 30
             attempts = 0
 
-            # Wait for completion
             while attempts < max_attempts:
                 run_status = openai_client.beta.threads.runs.retrieve(
                     thread_id=thread_id,
                     run_id=run.id
                 )
                 
-                if run_status.status == "failed":
-                    logger.error(f"Assistant run failed: {run_status.last_error}")
-                    return jsonify({"error": "Assistant encountered an error"}), 500
-                
                 if run_status.status == "completed":
-                    # Get messages
                     messages = openai_client.beta.threads.messages.list(
                         thread_id=thread_id
                     )
                     response_text = messages.data[0].content[0].text.value
                     
-                    # Save to chat history
+                    # Save to chat history - only save the user's actual prompt
                     chat_history = ChatHistory(
                         thread_id=thread_id,
                         username=session.get('username'),
-                        prompt=prompt,
+                        prompt=user_prompt,  # Store only the user's message
                         response=response_text,
                         timestamp=datetime.now(IST)
                     )
                     db.session.add(chat_history)
                     db.session.commit()
                     
-                    return jsonify({"response": response_text})
+                    return jsonify({
+                        "response": response_text,
+                        "timing_info": timing_info
+                    })
+                
+                if run_status.status == "failed":
+                    return jsonify({"error": "Assistant encountered an error"}), 500
                 
                 time.sleep(1)
                 attempts += 1
             
             return jsonify({"error": "Request timed out"}), 504
 
-        except OpenAIError as e:
-            logger.error(f"OpenAI error in chat route: {str(e)}")
-            return jsonify({"error": "An error occurred with the AI service"}), 500
         except Exception as e:
-            logger.error(f"General error in chat route: {str(e)}")
+            logger.error(f"Error in chat route: {str(e)}")
             return jsonify({"error": "An unexpected error occurred"}), 500
 
-    # GET request - get chat history
+    # GET request handling remains the same...
     try:
         thread_id = session.get("thread_id")
         chat_history = ChatHistory.query.filter_by(thread_id=thread_id).order_by(ChatHistory.timestamp).all()
         
-        # Get user details for new session button
+        timing_info = check_session_timing(thread_id)
+        
         user_details = {
             'username': session.get('username'),
             'industry': session.get('industry'),
             'company': session.get('company')
         }
         
-        # Format chat timestamps
         for chat in chat_history:
             chat.formatted_time = chat.timestamp.strftime('%I:%M %p')
         
         return render_template(
             "chat.html", 
             chat_history=chat_history,
-            user_details=user_details  # Pass user details to template
+            user_details=user_details,
+            timing_info=timing_info
         )
     except Exception as e:
         logger.error(f"Error retrieving chat history: {str(e)}")
         flash("Error loading chat history", "error")
-        return render_template("chat.html", chat_history=[], user_details={})
-
+        return render_template("chat.html", chat_history=[], user_details={}, timing_info={})
+    
 @app.route("/chat/history")
 @login_required
 def chat_history():  
