@@ -2,28 +2,34 @@
     --meeraq-pink: #E6007E;
     --meeraq-purple: #9B3899;
     --meeraq-blue: #1B1464;
+    --header-height: 64px; /* Height of your header */
+    --footer-height: 56px; /* Height of your footer */
 }
 
-/* Body styling for fixed chat container */
+/* Body styling */
 body {
     margin: 0;
     padding: 0;
-    height: 100vh;
+    min-height: 100vh;
+    background-color: #f0f0f0;
+}
+
+/* Main content area adjustment */
+main {
+    padding-top: var(--header-height);
+    padding-bottom: var(--footer-height);
+    min-height: calc(100vh - var(--header-height) - var(--footer-height));
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: #f0f0f0; /* Optional: adds contrast to the chat container */
 }
 
-/* Fixed chat container styling */
+/* Chat container positioning */
 .chat-container {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
     width: 90%;
     max-width: 800px;
-    height: 80vh;
+    height: calc(100vh - var(--header-height) - var(--footer-height) - 40px); /* 40px for padding */
+    margin: 20px auto;
     display: flex;
     flex-direction: column;
     background-color: #f9f9f9;
@@ -32,45 +38,44 @@ body {
     overflow: hidden;
 }
 
-/* Adjust chat messages area */
+/* Chat messages area */
 #chat-messages {
     flex: 1;
     overflow-y: auto;
     padding: 20px;
-    max-height: none; /* Remove previous max-height constraint */
+    scrollbar-width: thin;
+    scrollbar-color: var(--meeraq-pink) #f1f1f1;
 }
 
-/* Keep the input area at the bottom */
+/* Custom scrollbar styling */
+#chat-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+#chat-messages::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+#chat-messages::-webkit-scrollbar-thumb {
+    background: linear-gradient(to bottom, var(--meeraq-pink), var(--meeraq-purple));
+    border-radius: 10px;
+}
+
+#chat-messages::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(to bottom, var(--meeraq-purple), var(--meeraq-blue));
+}
+
+/* Input area */
 .border-t.p-4.bg-white {
-    position: relative; /* Change from sticky to relative */
-    bottom: 0;
+    position: relative;
     width: 100%;
     background-color: white;
     padding: 16px;
     box-shadow: 0px -2px 5px rgba(0, 0, 0, 0.1);
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-    width: 6px;
-}
-
-::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: linear-gradient(to bottom, var(--meeraq-pink), var(--meeraq-purple));
-    border-radius: 10px;
-    transition: background 0.3s ease;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(to bottom, var(--meeraq-purple), var(--meeraq-blue));
-}
-
-/* Message styles */
+/* Message styling */
 .message {
     padding: 1rem;
     margin: 0.5rem 0;
