@@ -118,7 +118,7 @@ def check_sessions():
         return jsonify({
             "previous_sessions": [{
                 "thread_id": thread.thread_id,
-                "created_at": thread.created_at.astimezone(IST).strftime("%Y-%m-%d %I:%M %p")
+                "created_at": thread.created_at.astimezone(IST).strftime("%Y-%m-%d %I:%M %p"),
                 "company": thread.company
             } for thread in previous_sessions]
         })
