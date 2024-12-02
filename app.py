@@ -58,9 +58,7 @@ class UserThread(db.Model):
     industry = db.Column(db.String(100), nullable=False)
     company = db.Column(db.String(100), nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(IST))
-    session_start = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(IST))
-    current_stage = db.Column(db.String(20), default='coaching')
-    
+
     # Existing relationships remain the same
     chats = db.relationship('ChatHistory', backref='thread', lazy=True,
                           cascade='all, delete-orphan')
@@ -217,46 +215,35 @@ def index():
 
     return render_template("index.html")
 
-# Add this function to check session timing
 def check_session_timing(thread_id):
     thread = UserThread.query.filter_by(thread_id=thread_id).first()
     if not thread:
         return None
     
     current_time = datetime.now(IST)
-    elapsed_time = (current_time - thread.session_start).total_seconds()
+    elapsed_time = (current_time - thread.created_at).total_seconds()
     
-    # Calculate remaining time in current stage
-    if thread.current_stage == 'coaching':
-        remaining_coaching_time = COACHING_DURATION - elapsed_time
-        if remaining_coaching_time <= 120 and remaining_coaching_time > 0:  # 2 minutes warning
-            return {
-                'stage': 'coaching',
-                'warning': True,
-                'message': 'Note: Coaching time is almost complete. Please start wrapping up this phase.'
-            }
-        elif elapsed_time >= COACHING_DURATION:
-            thread.current_stage = 'testing'
-            db.session.commit()
-            return {
-                'stage': 'testing',
-                'warning': False,
-                'message': 'Transitioning to testing phase.'
-            }
-    
-    # Check if entire session is about to end
-    if elapsed_time >= SESSION_DURATION - 120:  # 2 minutes before session ends
+    # Calculate current stage and remaining time
+    if elapsed_time >= SESSION_DURATION:
         return {
-            'stage': thread.current_stage,
+            'stage': 'ended',
             'warning': True,
-            'message': 'Session is ending soon. Please wrap up your current work.'
+            'message': 'Session has ended.'
         }
-    
-    return {
-        'stage': thread.current_stage,
-        'warning': False,
-        'message': None
-    }
+    elif elapsed_time >= COACHING_DURATION:
+        # In testing phase
+        return {
+            'stage': 'testing',
+            'warning': elapsed_time >= (SESSION_DURATION - 120),  # 2 min warning
+            'message': 'Session is ending soon. Please wrap up your current work.' if elapsed_time >= (SESSION_DURATION - 120) else None
+        }
+    else:
+        # In coaching phase
+        return {
+            'stage': 'coaching',
+            'warning': elapsed_time >= (COACHING_DURATION - 120),  # 2 min warning
+            'message': 'Coaching time is almost complete. Please start wrapping up this phase.' if elapsed_time >= (COACHING_DURATION - 120) else None
+        }
 
 @app.route("/chat", methods=["GET", "POST"])
 @login_required
@@ -273,6 +260,9 @@ def chat():
             timing_info = check_session_timing(thread_id)
             if timing_info is None:
                 return jsonify({"error": "Invalid session"}), 400
+                
+            if timing_info['stage'] == 'ended':
+                return jsonify({"error": "Session has ended"}), 400
 
             # Create messages separately
             messages_to_send = []
@@ -293,6 +283,15 @@ def chat():
                         thread_id=thread_id,
                         role="user",
                         content=f"[SYSTEM: {timing_info['message']}]"
+                    )
+                )
+                
+            if timing_info['stage'] == 'testing' and not timing_info.get('warning'):
+                messages_to_send.append(
+                    openai_client.beta.threads.messages.create(
+                        thread_id=thread_id,
+                        role="user",
+                        content="[SYSTEM: We are now in the testing phase.]"
                     )
                 )
 
