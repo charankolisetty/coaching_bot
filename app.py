@@ -83,10 +83,9 @@ with app.app_context():
 def format_time(timestamp):
     if timestamp:
         if not timestamp.tzinfo:
-            timestamp = pytz.UTC.localize(timestamp).astimezone(IST)
-        else:
-            timestamp = timestamp.astimezone(IST)
-        return timestamp.strftime('%I:%M %p')  # 12-hour format with AM/PM
+            timestamp = pytz.UTC.localize(timestamp)
+        ist_time = timestamp.astimezone(IST)
+        return ist_time.strftime('%I:%M %p')
     return ''
 
 # Route protection decorator
@@ -119,7 +118,7 @@ def check_sessions():
         return jsonify({
             "previous_sessions": [{
                 "thread_id": thread.thread_id,
-                "created_at": thread.created_at.strftime("%Y-%m-%d %H:%M"),
+                "created_at": thread.created_at.astimezone(IST).strftime("%Y-%m-%d %I:%M %p")
                 "company": thread.company
             } for thread in previous_sessions]
         })
@@ -194,7 +193,7 @@ def index():
                     username=username,
                     prompt=f"My name is {username}, and I work in the {industry} industry at {company}.",
                     response=initial_response,
-                    timestamp=datetime.now().astimezone(IST)
+                    timestamp=datetime.now(IST)
                 )
                 db.session.add(chat_history)
                 db.session.commit()
@@ -318,15 +317,16 @@ def chat():
 def chat_history():  
     try:
         username = session.get('username')
-        # Get user's threads
         user_threads = UserThread.query.filter_by(username=username).order_by(UserThread.created_at.desc()).all()
         
-        # Get conversations for each thread
         conversations = {}
         for thread in user_threads:
-            chats = ChatHistory.query.filter_by(
-                thread_id=thread.thread_id
-            ).order_by(ChatHistory.timestamp).all()
+            chats = ChatHistory.query.filter_by(thread_id=thread.thread_id).order_by(ChatHistory.timestamp).all()
+            
+            # Convert timestamps to IST
+            thread.created_at = thread.created_at.astimezone(IST)
+            for chat in chats:
+                chat.timestamp = chat.timestamp.astimezone(IST)
             
             conversations[thread.thread_id] = {
                 'industry': thread.industry,
@@ -335,10 +335,7 @@ def chat_history():
                 'messages': chats
             }
         
-        return render_template(
-            'history.html',
-            conversations=conversations
-        )
+        return render_template('history.html', conversations=conversations)
     except Exception as e:
         logger.error(f"Error retrieving chat history: {str(e)}")
         flash("Error loading chat history", "error")
