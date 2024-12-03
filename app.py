@@ -44,11 +44,6 @@ def inject_year():
     return {'year': datetime.now().year}
 
 # Models
-SESSION_DURATION = 20 * 60  # 20 minutes in seconds
-COACHING_DURATION = 14 * 60  # 14 minutes in seconds
-TESTING_DURATION = 4 * 60   # 4 minutes in seconds
-
-# Modify UserThread model to include timing fields
 class UserThread(db.Model):
     __tablename__ = 'user_threads'
     
@@ -215,12 +210,14 @@ def index():
 
     return render_template("index.html")
 
+SESSION_DURATION = 10 * 60  # 10 minutes = 600 seconds
+COACHING_DURATION = 6 * 60   # 6 minutes = 360 seconds
+
 def check_session_timing(thread_id):
     thread = UserThread.query.filter_by(thread_id=thread_id).first()
     if not thread:
         return None
     
-    # Ensure both times are timezone-aware
     current_time = datetime.now(IST)
     thread_start_time = thread.created_at
     if thread_start_time.tzinfo is None:
@@ -228,25 +225,19 @@ def check_session_timing(thread_id):
     
     elapsed_time = (current_time - thread_start_time).total_seconds()
     
-    # Calculate current stage and remaining time
-    if elapsed_time >= SESSION_DURATION:
+    # Notify model at specific time points
+    if elapsed_time >= COACHING_DURATION - 120 and elapsed_time < COACHING_DURATION:
         return {
-            'stage': 'ended',
             'warning': True,
-            'message': 'Session has ended.'
+            'message': '[SYSTEM: Coaching phase will end in 2 minutes. Please start wrapping up.]'
         }
-    elif elapsed_time >= COACHING_DURATION:
+    elif elapsed_time >= SESSION_DURATION - 120 and elapsed_time < SESSION_DURATION:
         return {
-            'stage': 'testing',
-            'warning': elapsed_time >= (SESSION_DURATION - 120),
-            'message': 'Session is ending soon. Please wrap up your current work.' if elapsed_time >= (SESSION_DURATION - 120) else None
+            'warning': True,
+            'message': '[SYSTEM: Session will end in 2 minutes. Please conclude.]'
         }
-    else:
-        return {
-            'stage': 'coaching',
-            'warning': elapsed_time >= (COACHING_DURATION - 120),
-            'message': 'Coaching time is almost complete. Please start wrapping up this phase.' if elapsed_time >= (COACHING_DURATION - 120) else None
-        }
+    
+    return {'warning': False, 'message': None}
 
 @app.route("/chat", methods=["GET", "POST"])
 @login_required
@@ -259,27 +250,21 @@ def chat():
             return jsonify({"error": "Prompt and Thread ID are required"}), 400
 
         try:
-            # Check session timing
             timing_info = check_session_timing(thread_id)
-            if timing_info is None:
-                return jsonify({"error": "Invalid session"}), 400
-                
-            if timing_info['stage'] == 'ended':
-                return jsonify({"error": "Session has ended"}), 400
-
-            # First send the user's message
+            
+            # Send user message
             message = openai_client.beta.threads.messages.create(
                 thread_id=thread_id,
                 role="user",
                 content=user_prompt
             )
             
-            # If there's a timing warning, send it as a separate message
-            if timing_info.get('warning'):
+            # If there's a timing warning, send it as system message
+            if timing_info and timing_info['warning']:
                 openai_client.beta.threads.messages.create(
                     thread_id=thread_id,
                     role="user",
-                    content=f"[SYSTEM: {timing_info['message']}]"
+                    content=timing_info['message']
                 )
             
             # Run the assistant
