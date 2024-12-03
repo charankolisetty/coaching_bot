@@ -15,6 +15,9 @@ from dotenv import load_dotenv
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+SESSION_DURATION = 20 * 60
+COACHING_DURATION = 14 * 60
+
 IST = pytz.timezone('Asia/Kolkata')
 load_dotenv()
 
@@ -131,6 +134,10 @@ def index():
         company = request.form.get("company")
         thread_id = request.form.get("thread_id")
 
+        session['coaching_warning_sent'] = False
+        session['session_warning_sent'] = False
+        session['completion_warning_sent'] = False
+
         if not all([username, industry, company]):
             flash("All fields are required", "error")
             return redirect(url_for("index"))
@@ -210,82 +217,83 @@ def index():
 
     return render_template("index.html")
 
-SESSION_DURATION = 10 * 60  # 10 minutes
-COACHING_DURATION = 6 * 60   # 6 minutes
-
-def check_session_timing(thread_id):
-    thread = UserThread.query.filter_by(thread_id=thread_id).first()
-    if not thread:
-        return None
-    
-    current_time = datetime.now(IST)
-    thread_start_time = thread.created_at
-    if thread_start_time.tzinfo is None:
-        thread_start_time = IST.localize(thread_start_time)
-    
-    elapsed_time = (current_time - thread_start_time).total_seconds()
-    
-    # Only notify at specific time points
-    if elapsed_time >= COACHING_DURATION - 120 and elapsed_time < COACHING_DURATION:
-        return {
-            'warning': True,
-            'message': '[SYSTEM INSTRUCTION: Time Check - 2 minutes remaining in coaching phase. Please start concluding your coaching insights and prepare for the assessment phase.]'
-        }
-    elif elapsed_time >= SESSION_DURATION - 120 and elapsed_time < SESSION_DURATION:
-        return {
-            'warning': True,
-            'message': '[SYSTEM INSTRUCTION: Time Check - 2 minutes remaining in session. Please provide final conclusions and wrap up.]'
-        }
-    
-    return {'warning': False, 'message': None}
 
 @app.route("/chat", methods=["GET", "POST"])
 @login_required
 def chat():
     if request.method == "POST":
-        user_prompt = request.form.get("prompt")
+        prompt = request.form.get("prompt")
         thread_id = session.get("thread_id")
         
-        if not user_prompt or not thread_id:
+        if not prompt or not thread_id:
             return jsonify({"error": "Prompt and Thread ID are required"}), 400
 
         try:
-            # Check timing first
-            timing_info = check_session_timing(thread_id)
-            logger.info(f"Timing check: {timing_info}")  # For debugging
-            
-            # If there's a timing warning, send it BEFORE the user message
-            if timing_info and timing_info['warning']:
-                openai_client.beta.threads.messages.create(
-                    thread_id=thread_id,
-                    role="user",
-                    content=timing_info['message']
-                )
-                logger.info(f"Sent timing instruction: {timing_info['message']}")
-
             # Send user message
             message = openai_client.beta.threads.messages.create(
                 thread_id=thread_id,
                 role="user",
-                content=user_prompt
+                content=prompt
             )
 
-            # Run the assistant
-            run = openai_client.beta.threads.runs.create(
-                thread_id=thread_id,
-                assistant_id=app.config["ASSISTANT_ID"]
-            )
+            # Check timing
+            current_time = datetime.now(IST)
+            thread = UserThread.query.filter_by(thread_id=thread_id).first()
+            thread_start_time = IST.localize(thread.created_at) if thread.created_at.tzinfo is None else thread.created_at
+            elapsed_time = (current_time - thread_start_time).total_seconds()
 
-            max_attempts = 30
+            # Get warning flags from session
+            coaching_warning_sent = session.get('coaching_warning_sent', False)
+            session_warning_sent = session.get('session_warning_sent', False)
+            completion_warning_sent = session.get('completion_warning_sent', False)
+
+            # Check timing and send appropriate instruction
+            if COACHING_DURATION - 120 <= elapsed_time < COACHING_DURATION and not coaching_warning_sent:
+                run = openai_client.beta.threads.runs.create(
+                    thread_id=thread_id,
+                    assistant_id=app.config["ASSISTANT_ID"],
+                    instructions="You have 2 minutes left in the coaching phase. Wrap up your current coaching points, summarize key insights, and prepare to transition to assessment. Keep responses concise."
+                )
+                session['coaching_warning_sent'] = True
+                
+            elif SESSION_DURATION - 120 <= elapsed_time < SESSION_DURATION and not session_warning_sent:
+                run = openai_client.beta.threads.runs.create(
+                    thread_id=thread_id,
+                    assistant_id=app.config["ASSISTANT_ID"],
+                    instructions="You have 2 minutes left in the session. Provide a quick summary, emphasize key takeaways, and give a final actionable step. Keep it brief and conclusive."
+                )
+                session['session_warning_sent'] = True
+
+            elif elapsed_time >= SESSION_DURATION and not completion_warning_sent:
+                run = openai_client.beta.threads.runs.create(
+                    thread_id=thread_id,
+                    assistant_id=app.config["ASSISTANT_ID"],
+                    instructions="Please try to complete the session now."
+                )
+                session['completion_warning_sent'] = True
+
+            else:
+                run = openai_client.beta.threads.runs.create(
+                    thread_id=thread_id,
+                    assistant_id=app.config["ASSISTANT_ID"]
+                )
+
+            max_attempts = 30  # Maximum 30 seconds wait
             attempts = 0
 
+            # Wait for completion
             while attempts < max_attempts:
                 run_status = openai_client.beta.threads.runs.retrieve(
                     thread_id=thread_id,
                     run_id=run.id
                 )
                 
+                if run_status.status == "failed":
+                    logger.error(f"Assistant run failed: {run_status.last_error}")
+                    return jsonify({"error": "Assistant encountered an error"}), 500
+                
                 if run_status.status == "completed":
+                    # Get messages
                     messages = openai_client.beta.threads.messages.list(
                         thread_id=thread_id
                     )
@@ -295,63 +303,52 @@ def chat():
                     chat_history = ChatHistory(
                         thread_id=thread_id,
                         username=session.get('username'),
-                        prompt=user_prompt,
+                        prompt=prompt,
                         response=response_text,
                         timestamp=datetime.now(IST)
                     )
                     db.session.add(chat_history)
                     db.session.commit()
                     
-                    return jsonify({
-                        "response": response_text
-                    })
-                
-                if run_status.status == "failed":
-                    logger.error(f"Assistant run failed: {run_status.last_error}")
-                    return jsonify({"error": "Assistant encountered an error"}), 500
+                    return jsonify({"response": response_text})
                 
                 time.sleep(1)
                 attempts += 1
             
             return jsonify({"error": "Request timed out"}), 504
 
+        except OpenAIError as e:
+            logger.error(f"OpenAI error in chat route: {str(e)}")
+            return jsonify({"error": "An error occurred with the AI service"}), 500
         except Exception as e:
-            logger.error(f"Error in chat route: {str(e)}")
+            logger.error(f"General error in chat route: {str(e)}")
             return jsonify({"error": "An unexpected error occurred"}), 500
 
-    # GET request handling
+    # GET request - get chat history
     try:
         thread_id = session.get("thread_id")
-        if not thread_id:
-            return redirect(url_for("index"))
-            
         chat_history = ChatHistory.query.filter_by(thread_id=thread_id).order_by(ChatHistory.timestamp).all()
         
-        # Ensure timezone-aware comparison for timing info
-        timing_info = check_session_timing(thread_id)
-        
+        # Get user details for new session button
         user_details = {
             'username': session.get('username'),
             'industry': session.get('industry'),
             'company': session.get('company')
         }
         
+        # Format chat timestamps
         for chat in chat_history:
-            # Ensure timestamp is timezone-aware before formatting
-            if chat.timestamp.tzinfo is None:
-                chat.timestamp = IST.localize(chat.timestamp)
             chat.formatted_time = chat.timestamp.strftime('%I:%M %p')
         
         return render_template(
             "chat.html", 
             chat_history=chat_history,
-            user_details=user_details,
-            timing_info=timing_info
+            user_details=user_details  # Pass user details to template
         )
     except Exception as e:
         logger.error(f"Error retrieving chat history: {str(e)}")
         flash("Error loading chat history", "error")
-        return render_template("chat.html", chat_history=[], user_details={}, timing_info={})
+        return render_template("chat.html", chat_history=[], user_details={})
     
 @app.route("/chat/history")
 @login_required
