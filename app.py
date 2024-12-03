@@ -210,8 +210,8 @@ def index():
 
     return render_template("index.html")
 
-SESSION_DURATION = 10 * 60  # 10 minutes = 600 seconds
-COACHING_DURATION = 6 * 60   # 6 minutes = 360 seconds
+SESSION_DURATION = 10 * 60  # 10 minutes
+COACHING_DURATION = 6 * 60   # 6 minutes
 
 def check_session_timing(thread_id):
     thread = UserThread.query.filter_by(thread_id=thread_id).first()
@@ -225,16 +225,16 @@ def check_session_timing(thread_id):
     
     elapsed_time = (current_time - thread_start_time).total_seconds()
     
-    # Notify model at specific time points
+    # Only notify at specific time points
     if elapsed_time >= COACHING_DURATION - 120 and elapsed_time < COACHING_DURATION:
         return {
             'warning': True,
-            'message': '[SYSTEM: Coaching phase will end in 2 minutes. Please start wrapping up.]'
+            'message': '[SYSTEM INSTRUCTION: Time Check - 2 minutes remaining in coaching phase. Please start concluding your coaching insights and prepare for the assessment phase.]'
         }
     elif elapsed_time >= SESSION_DURATION - 120 and elapsed_time < SESSION_DURATION:
         return {
             'warning': True,
-            'message': '[SYSTEM: Session will end in 2 minutes. Please conclude.]'
+            'message': '[SYSTEM INSTRUCTION: Time Check - 2 minutes remaining in session. Please provide final conclusions and wrap up.]'
         }
     
     return {'warning': False, 'message': None}
@@ -250,23 +250,26 @@ def chat():
             return jsonify({"error": "Prompt and Thread ID are required"}), 400
 
         try:
+            # Check timing first
             timing_info = check_session_timing(thread_id)
+            logger.info(f"Timing check: {timing_info}")  # For debugging
             
-            # Send user message
-            message = openai_client.beta.threads.messages.create(
-                thread_id=thread_id,
-                role="user",
-                content=user_prompt
-            )
-            
-            # If there's a timing warning, send it as system message
+            # If there's a timing warning, send it BEFORE the user message
             if timing_info and timing_info['warning']:
                 openai_client.beta.threads.messages.create(
                     thread_id=thread_id,
                     role="user",
                     content=timing_info['message']
                 )
-            
+                logger.info(f"Sent timing instruction: {timing_info['message']}")
+
+            # Send user message
+            message = openai_client.beta.threads.messages.create(
+                thread_id=thread_id,
+                role="user",
+                content=user_prompt
+            )
+
             # Run the assistant
             run = openai_client.beta.threads.runs.create(
                 thread_id=thread_id,
@@ -288,7 +291,7 @@ def chat():
                     )
                     response_text = messages.data[0].content[0].text.value
                     
-                    # Save to chat history with timezone-aware timestamp
+                    # Save to chat history
                     chat_history = ChatHistory(
                         thread_id=thread_id,
                         username=session.get('username'),
@@ -300,8 +303,7 @@ def chat():
                     db.session.commit()
                     
                     return jsonify({
-                        "response": response_text,
-                        "timing_info": timing_info
+                        "response": response_text
                     })
                 
                 if run_status.status == "failed":
