@@ -220,8 +220,13 @@ def check_session_timing(thread_id):
     if not thread:
         return None
     
+    # Ensure both times are timezone-aware
     current_time = datetime.now(IST)
-    elapsed_time = (current_time - thread.created_at).total_seconds()
+    thread_start_time = thread.created_at
+    if thread_start_time.tzinfo is None:
+        thread_start_time = IST.localize(thread_start_time)
+    
+    elapsed_time = (current_time - thread_start_time).total_seconds()
     
     # Calculate current stage and remaining time
     if elapsed_time >= SESSION_DURATION:
@@ -231,17 +236,15 @@ def check_session_timing(thread_id):
             'message': 'Session has ended.'
         }
     elif elapsed_time >= COACHING_DURATION:
-        # In testing phase
         return {
             'stage': 'testing',
-            'warning': elapsed_time >= (SESSION_DURATION - 120),  # 2 min warning
+            'warning': elapsed_time >= (SESSION_DURATION - 120),
             'message': 'Session is ending soon. Please wrap up your current work.' if elapsed_time >= (SESSION_DURATION - 120) else None
         }
     else:
-        # In coaching phase
         return {
             'stage': 'coaching',
-            'warning': elapsed_time >= (COACHING_DURATION - 120),  # 2 min warning
+            'warning': elapsed_time >= (COACHING_DURATION - 120),
             'message': 'Coaching time is almost complete. Please start wrapping up this phase.' if elapsed_time >= (COACHING_DURATION - 120) else None
         }
 
@@ -264,37 +267,21 @@ def chat():
             if timing_info['stage'] == 'ended':
                 return jsonify({"error": "Session has ended"}), 400
 
-            # Create messages separately
-            messages_to_send = []
+            # First send the user's message
+            message = openai_client.beta.threads.messages.create(
+                thread_id=thread_id,
+                role="user",
+                content=user_prompt
+            )
             
-            # Add the user's message
-            messages_to_send.append(
+            # If there's a timing warning, send it as a separate message
+            if timing_info.get('warning'):
                 openai_client.beta.threads.messages.create(
                     thread_id=thread_id,
                     role="user",
-                    content=user_prompt
+                    content=f"[SYSTEM: {timing_info['message']}]"
                 )
-            )
             
-            # Add timing instruction as a separate system message if needed
-            if timing_info.get('warning'):
-                messages_to_send.append(
-                    openai_client.beta.threads.messages.create(
-                        thread_id=thread_id,
-                        role="user",
-                        content=f"[SYSTEM: {timing_info['message']}]"
-                    )
-                )
-                
-            if timing_info['stage'] == 'testing' and not timing_info.get('warning'):
-                messages_to_send.append(
-                    openai_client.beta.threads.messages.create(
-                        thread_id=thread_id,
-                        role="user",
-                        content="[SYSTEM: We are now in the testing phase.]"
-                    )
-                )
-
             # Run the assistant
             run = openai_client.beta.threads.runs.create(
                 thread_id=thread_id,
@@ -316,11 +303,11 @@ def chat():
                     )
                     response_text = messages.data[0].content[0].text.value
                     
-                    # Save to chat history - only save the user's actual prompt
+                    # Save to chat history with timezone-aware timestamp
                     chat_history = ChatHistory(
                         thread_id=thread_id,
                         username=session.get('username'),
-                        prompt=user_prompt,  # Store only the user's message
+                        prompt=user_prompt,
                         response=response_text,
                         timestamp=datetime.now(IST)
                     )
@@ -333,6 +320,7 @@ def chat():
                     })
                 
                 if run_status.status == "failed":
+                    logger.error(f"Assistant run failed: {run_status.last_error}")
                     return jsonify({"error": "Assistant encountered an error"}), 500
                 
                 time.sleep(1)
@@ -344,11 +332,15 @@ def chat():
             logger.error(f"Error in chat route: {str(e)}")
             return jsonify({"error": "An unexpected error occurred"}), 500
 
-    # GET request handling remains the same...
+    # GET request handling
     try:
         thread_id = session.get("thread_id")
+        if not thread_id:
+            return redirect(url_for("index"))
+            
         chat_history = ChatHistory.query.filter_by(thread_id=thread_id).order_by(ChatHistory.timestamp).all()
         
+        # Ensure timezone-aware comparison for timing info
         timing_info = check_session_timing(thread_id)
         
         user_details = {
@@ -358,6 +350,9 @@ def chat():
         }
         
         for chat in chat_history:
+            # Ensure timestamp is timezone-aware before formatting
+            if chat.timestamp.tzinfo is None:
+                chat.timestamp = IST.localize(chat.timestamp)
             chat.formatted_time = chat.timestamp.strftime('%I:%M %p')
         
         return render_template(
