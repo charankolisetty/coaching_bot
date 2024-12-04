@@ -252,7 +252,7 @@ def chat():
                 run = openai_client.beta.threads.runs.create(
                     thread_id=thread_id,
                     assistant_id=app.config["ASSISTANT_ID"],
-                    instructions="You have 2 minutes left in the coaching phase. Wrap up your current coaching points, summarize key insights, and prepare to transition to assessment. Keep responses concise."
+                    instructions="You have 2 minutes left in the coaching phase. Wrap up your current coaching points, summarize key insights, and prepare to transition to assessment. Keep responses concise. If coaching is still going on then tell the user that 'Since our time is moving along, how would you feel about transitioning into a mentoring approach where I could share some suggestions to help guide the next steps?'"
                 )
                 session['coaching_warning_sent'] = True
                 
@@ -268,7 +268,7 @@ def chat():
                 run = openai_client.beta.threads.runs.create(
                     thread_id=thread_id,
                     assistant_id=app.config["ASSISTANT_ID"],
-                    instructions="Please try to complete the session now."
+                    instructions="Please try to complete the session now. Saying that 'We’re nearing the end of our time, so let’s focus on wrapping this up efficiently to make the most of the remaining moments.'"
                 )
                 session['completion_warning_sent'] = True
 
